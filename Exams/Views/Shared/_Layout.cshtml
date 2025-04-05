@@ -1,0 +1,113 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - Exams</title>
+
+    <!-- ✅ استدعاء Bootstrap & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <link href="~/homepage/layour.css" rel="stylesheet" />
+    
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Exams.styles.css" asp-append-version="true" />
+    @RenderSection("Styles", false)
+</head>
+<body>
+
+        <!-- 🔥 Header / Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container">
+                <a class="navbar-brand" href="/">
+                    <i class="fas fa-graduation-cap"></i> Exam System
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/Home/List"><i class="fas fa-home"></i> Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/Exam/List"><i class="fas fa-file-alt"></i> Exams</a>
+                        </li>
+                     <ul class="navbar-nav ms-auto">
+
+                        <ul class="navbar-nav ms-auto">
+                            @if (User.Identity.IsAuthenticated)
+                            {
+                                <li class="nav-item">
+                                    <span class="nav-link text-white">Welcome, @User.Identity.Name!</span>
+                                </li>
+
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/Admin/Home/Index"><i class="fas fa-user-shield"></i> Admin Panel</a>
+                                    </li>
+                                }
+                                @if (User.IsInRole("Teacher"))
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/Admin/Exam/List"><i class="fas fa-plus-circle"></i> Create Exam</a>
+                                    </li>
+                                }
+                                <li class="nav-item">
+                                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-danger ms-3">
+                                            <i class="fas fa-sign-out-alt"></i> Logout
+                                        </button>
+                                    </form>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" asp-controller="Account" asp-action="Login">
+                                        <i class="fas fa-sign-in-alt"></i> Login
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" asp-controller="Account" asp-action="Register">
+                                        <i class="fas fa-user-plus"></i> Register
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+
+                    </ul>
+
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 🏆 محتوى الصفحة -->
+        <div class="container mt-4">
+            @RenderBody()
+        </div>
+
+        <!-- 🏁 Footer -->
+        <footer class="footer mt-5">
+            <div class="container">
+                <p class="mb-1">© 2024 Exam System. All Rights Reserved.</p>
+                <div class="footer-links">
+                    <a href="/About">About</a> |
+                    <a href="/Contact">Contact</a> |
+                    <a href="/Privacy">Privacy Policy</a>
+                </div>
+            </div>
+        </footer>
+
+        <!-- ✅ Scripts -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

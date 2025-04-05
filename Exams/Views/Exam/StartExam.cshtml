@@ -1,0 +1,118 @@
+﻿@model ViewPageExam
+
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+}
+
+<div class="container mt-5">
+    <div class="card shadow-lg p-4 bg-light">
+        <!-- ✅ عنوان الامتحان -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="text-primary">
+                <i class="fas fa-file-alt"></i> @Model.Exam.Title
+            </h2>
+            <!-- ⏳ عرض الوقت المستغرق -->
+            <span class="badge bg-dark fs-5">
+                ⏳ Time Spent: <span id="exam-timer">0:00</span>
+            </span>
+        </div>
+
+        <!-- ✅ نموذج الإجابة -->
+        <form method="post" id="exam-form" action="@Url.Action("SubmitExam", "Exam")">
+            <input type="hidden" name="ExamId" value="@Model.Exam.Id" />
+
+            <div id="questions-wrapper">
+                @for (int i = 0; i < Model.Questions.Count; i++)
+                {
+                    var question = Model.Questions[i];
+                    <div class="question-container @(i == 0 ? "d-block" : "d-none")" id="question-@i">
+                        <div class="card shadow-sm p-3 mb-3 border-0 bg-white">
+                            <h5 class="text-dark"><i class="fas fa-question-circle"></i> @question.QuestionText</h5>
+
+                            <div class="mt-2">
+                                @foreach (var choice in question.Choices)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input"
+                                               type="radio"
+                                               name="Answers[@question.Id]"
+                                               value="@choice.Id"
+                                               id="choice-@choice.Id" required />
+                                        <label class="form-check-label text-dark fs-5" for="choice-@choice.Id">
+                                            @choice.ChoiceText
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- ✅ أزرار التنقل -->
+                        <div class="d-flex justify-content-between">
+                            @if (i > 0)
+                            {
+                                <button type="button" class="btn btn-secondary px-4 py-2 fs-5 prev-btn" data-index="@i">
+                                    ⬅ Previous
+                                </button>
+                            }
+                            @if (i < Model.Questions.Count - 1)
+                            {
+                                <button type="button" class="btn btn-primary px-4 py-2 fs-5 next-btn" data-index="@i">
+                                    Next ➡
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- 🔥 زر إرسال الامتحان -->
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-success px-5 py-2 fs-5" id="submit-btn" style="display: none;">
+                    <i class="fas fa-paper-plane"></i> Submit Exam
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentQuestionIndex = 0;
+        const totalQuestions = @Model.Questions.Count;
+        const questions = document.querySelectorAll(".question-container");
+
+        document.querySelectorAll(".next-btn").forEach(btn => {
+            btn.addEventListener("click", function () {
+                let index = parseInt(this.getAttribute("data-index"));
+                questions[index].classList.add("d-none");
+                questions[index + 1].classList.remove("d-none");
+                currentQuestionIndex = index + 1;
+                updateNavButtons();
+            });
+        });
+
+        document.querySelectorAll(".prev-btn").forEach(btn => {
+            btn.addEventListener("click", function () {
+                let index = parseInt(this.getAttribute("data-index"));
+                questions[index].classList.add("d-none");
+                questions[index - 1].classList.remove("d-none");
+                currentQuestionIndex = index - 1;
+                updateNavButtons();
+            });
+        });
+
+        function updateNavButtons() {
+            document.getElementById("submit-btn").style.display = (currentQuestionIndex === totalQuestions - 1) ? "block" : "none";
+        }
+
+        setInterval(() => {
+            const timerDisplay = document.getElementById("exam-timer");
+            let time = timerDisplay.textContent.split(":");
+            let minutes = parseInt(time[0]);
+            let seconds = parseInt(time[1]);
+            seconds++;
+            if (seconds === 60) { minutes++; seconds = 0; }
+            timerDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }, 1000);
+    </script>
+}

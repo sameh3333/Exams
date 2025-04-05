@@ -1,0 +1,55 @@
+﻿/* 🎨 تحسينات على الهيدر */
+.navbar {
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    padding: 10px 20px;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffdd57;
+}
+
+.nav-link {
+    color: white !important;
+    font-weight: 500;
+    transition: 0.3s ease-in-out;
+}
+
+    .nav-link:hover {
+        color: #ffdd57 !important;
+        transform: scale(1.05);
+    }
+
+/* 🎯 زر تسجيل الخروج */
+.logout-btn {
+    background: #ff512f;
+    border: none;
+    color: white;
+    font-weight: bold;
+    transition: 0.3s ease-in-out;
+}
+
+    .logout-btn:hover {
+        background: #dd2476;
+        transform: scale(1.05);
+    }
+
+/* 📌 الفوتر */
+.footer {
+    background: #1e3c72;
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+}
+
+.footer-links a {
+    color: #ffdd57;
+    margin: 0 10px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+    .footer-links a:hover {
+        text-decoration: underline;
+    }

@@ -1,0 +1,43 @@
+﻿@model TbChoiceDto
+
+<div class="container mt-5 d-flex justify-content-center">
+    <div class="card shadow border-0 rounded-3 p-4"
+         style="max-width: 500px; width: 100%; min-height: 300px;">
+        <h5 class="text-center text-primary mb-4">📝 Add / Edit Choice</h5>
+
+        <form asp-action="Save" asp-controller="Choice" method="post">
+            <input type="hidden" asp-for="QuestionId" />
+            <input type="hidden" asp-for="Id" />
+
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Choice Text</label>
+                <input type="text" asp-for="ChoiceText" class="form-control" placeholder="Enter choice text" required />
+            </div>
+
+            <div class="mb-4 form-check d-flex align-items-center">
+                <input asp-for="IsCorrect" class="form-check-input me-2 correct-choice" type="checkbox" id="correctChoice" />
+                <label for="correctChoice" class="form-check-label fw-semibold">Correct Answer</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 d-flex align-items-center justify-content-center py-2">
+                <i class="bi bi-save me-2"></i> Save Choice
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let checkboxes = document.querySelectorAll(".correct-choice");
+
+        checkboxes.forEach(function (checkbox) {
+            checkbox.addEventListener("change", function () {
+                if (this.checked) {
+                    checkboxes.forEach(cb => {
+                        if (cb !== this) cb.checked = false;
+                    });
+                }
+            });
+        });
+    });
+</script>

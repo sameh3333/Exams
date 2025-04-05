@@ -1,0 +1,44 @@
+﻿/* 🎨 تصميم حديث للبطاقات */
+.exam-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1e3c72, #2a5298); /* 🔹 ألوان هادئة */
+    color: #fff;
+}
+
+    .exam-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.25);
+    }
+
+.exam-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #ffdd57; /* 🟡 لون العنوان */
+}
+
+.exam-description {
+    font-size: 0.95rem;
+    color: #f8f9fa; /* 🌟 لون النص */
+}
+
+/* 🎯 زر بدء الامتحان */
+.start-exam-btn {
+    background: linear-gradient(135deg, #ff512f, #dd2476); /* 🔥 ألوان جريئة */
+    color: white;
+    transition: all 0.3s ease-in-out;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+    .start-exam-btn:hover {
+        background: linear-gradient(135deg, #dd2476, #ff512f);
+        color: white;
+        transform: scale(1.05);
+    }
+
+/* 📌 تحسين الخطوط والهوامش */
+h2 {
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.15);
+}
