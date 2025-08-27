@@ -5,7 +5,6 @@ using BL.Exceptions;
 using Exams.Contracts;
 using DAL.Context;
 using Domin;
-using System.Threading.Tasks;
 
 namespace Exams.Repositorys
 {
@@ -125,6 +124,8 @@ namespace Exams.Repositorys
                 throw new DataAccessException(ex, "", _logger);
             }
         }
+
+        
     }
 
 }

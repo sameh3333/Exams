@@ -28,7 +28,7 @@ namespace BL.Dtos
 
         [Required(ErrorMessage = "📞 Phone number is required")]
         [Phone(ErrorMessage = "❌ Invalid phone number")]
-        [StringLength(11, MinimumLength = 6, ErrorMessage = "Phone number must be between 6 and 15 digits")]
+        [StringLength(11, MinimumLength = 6, ErrorMessage = "Phone number must be between 6 and 11 digits")]
         public string PhoneNumber { get; set; }
 
         [Required(ErrorMessage = "🔑 Password is required")]

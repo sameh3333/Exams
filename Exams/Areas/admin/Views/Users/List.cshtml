@@ -1,0 +1,39 @@
+﻿@model IEnumerable<BL.Dtos.UserDto>
+
+<div class="container mt-4">
+    <div class="card shadow-lg rounded-3">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">👥 Users List</h4>
+            <span class="badge bg-light text-dark">@Model.Count() Users</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover table-striped mb-0 align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th scope="col">📧 Email</th>
+                        <th scope="col">👤 FirstName</th>
+                        <th scope="col">👤 LastName</th>
+                        <th scope="col">📱 Phone</th>
+                        <th scope="col">⭐ Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        <tr>
+                            <td>@user.Email</td>
+                            <td>@user.FirstName</td>
+                            <td>@user.LastName</td>
+                            <td>@(string.IsNullOrEmpty(user.PhoneNumber) ? "—" : user.PhoneNumber)</td>
+                            <td>
+                                <span class="badge @(user.Role == "Admin" ? "bg-danger" : "bg-success")">
+                                    @user.Role
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

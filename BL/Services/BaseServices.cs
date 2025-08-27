@@ -17,8 +17,6 @@ namespace BL.Services
           readonly IGenericRepository<T> _redo;
        
         readonly IMapper _mapper;
-        private IGenericRepository<TbQuestion> redo;
-        private Maping.IMapper mapper;
         private readonly IUserServices _userServices;
 
         public BaseServices(IGenericRepository<T> redo, IMapper mapper, IUserServices userServices)
@@ -28,11 +26,7 @@ namespace BL.Services
             _userServices = userServices;
         }
 
-        public BaseServices(IGenericRepository<TbQuestion> redo, Maping.IMapper mapper)
-        {
-            this.redo = redo;
-            this.mapper = mapper;
-        }
+        
 
         public async Task<List<DTO>> GetAll()
         {

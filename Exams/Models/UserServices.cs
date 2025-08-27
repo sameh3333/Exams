@@ -1,5 +1,6 @@
 ﻿using BL.Contracts;
 using BL.Dtos;
+using DAL.Context;
 using Microsoft.AspNetCore.Identity;
 using System.Linq.Expressions;
 using System.Security.Claims;
@@ -10,11 +11,14 @@ namespace Exams.Models
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly IHttpContextAccessor _httpContextAccessor;  
-        public UserServices(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IHttpContextAccessor httpContextAccessor) {
+        private readonly IHttpContextAccessor _httpContextAccessor;
+       private readonly ExamsContext _context;
+        public UserServices(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IHttpContextAccessor httpContextAccessor
+             ,ExamsContext Contect) {
             _userManager=userManager;
             _signInManager=signInManager;
             _httpContextAccessor=httpContextAccessor;
+            _context = Contect;
         }
 
 
@@ -130,10 +134,28 @@ namespace Exams.Models
             });
         }
 
-      
 
-       
 
-      
+
+        public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
+        {
+            return  _context.Users
+                .Select(u => new UserDto
+                {
+                    Id = Guid.Parse(u.Id),
+                    Email = u.Email ?? "❌ No Email",
+                    FirstName = u.FirstName ?? string.Empty,
+                    LastName = u.LastName ?? string.Empty,
+                    PhoneNumber = u.PhoneNumber ?? string.Empty,
+                    Role = (from ur in _context.UserRoles
+                            join r in _context.Roles on ur.RoleId equals r.Id
+                            where ur.UserId == u.Id
+                            select r.Name).FirstOrDefault() ?? "User"
+                })
+                .ToList();
+        }
+
+
+
     }
 }

@@ -11,17 +11,8 @@ namespace BL.Contracts
 {
     public  interface IUserServices
     {
-       
-            //Task<UserRegusterDto> RegisterAsync(UserDto model);
-            //Task<UserRegusterDto> LoginAsync(LoginDto model);
-            //Task LogoutAsync(); // ✅ تسجيل الخروج
-            //Task<List<UserDto>> GetAllUsersAsync();
-            //Task<UserDto?> GetUserByIdAsync(Guid id);
-            //Task<bool> DeleteUserAsync(Guid id);
-            //Task<IdentityResult> UpdateUserAsync(Guid id, UpdateUserDto model);
-            //Task<IdentityResult> AssignRoleAsync(Guid userId, string role);
-            //Task<IList<string>> GetUserRolesAsync(Guid userId);
 
+        Task<IEnumerable<UserDto>> GetAllUsersAsync();
         Task<UserRegusterDto> RegisterAsync(UserDto registerDto);
         Task<UserRegusterDto> LoginAsync(LoginDto loginDto);
         Task LogoutAsenc();
