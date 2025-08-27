@@ -6,6 +6,7 @@ using BL.Exceptions;
 using Exams.Repositorys;
 using Domin;
 using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
 namespace Exams.Areas.admin.Controllers
 {
     [Area("admin")]
@@ -22,25 +23,17 @@ namespace Exams.Areas.admin.Controllers
             _logger = logger;
         }
    
-        public IActionResult List(Guid? ExamId)
+        public async Task<IActionResult> List(Guid? ExamId)
         {
-            if (!ExamId.HasValue || ExamId == Guid.Empty)
-            {
-                TempData["MessageType"] = MessageType.SaveSucess;
-                return RedirectToAction("List", "Exam");
-            }
 
-            var getdata = _Qusetion.GetAll()
-                                   .Where(e => e.ExamId == ExamId)
-                                   .ToList();
 
-            ViewBag.ExamId = ExamId.Value; // ✅ التأكد من تمرير ExamId عند العودة
+            var getdata =await _Qusetion.GetByExamId(ExamId);
             return View(getdata);
         }
         public IActionResult Edit(Guid? Id, Guid examId)
         {
-            var data = Id.HasValue ? _Qusetion.GetById((Guid)Id) : new BL.Dtos.TbQuestionDto { ExamId = examId };
-            ViewBag.ExamId = data.ExamId;
+
+            var data = _Qusetion.QuestionEdit(Id, examId);  
             return View(data);
         }
         [HttpPost]
@@ -48,19 +41,16 @@ namespace Exams.Areas.admin.Controllers
         public async Task<IActionResult> Save(TbQuestionDto data)
         {
             TempData["MessageType"] = null;
-            if (data.ExamId == Guid.Empty)
-            {
-                TempData["MessageType"] = MessageType.SaveFailed;
-                return RedirectToAction("Edit", new { Id = data.Id, ExamId = ViewBag.ExamId });
-            }
+           
+          
             if (!ModelState.IsValid)
                 return View("Edit", data);
             try
             {
                 if (data.Id == Guid.Empty)
-                    _Qusetion.Add(data, data.Id);
+                  await  _Qusetion.Add(data);
                 else
-                    _Qusetion.Update(data, data.Id);
+                  await  _Qusetion.Update(data);
                 TempData["MessageType"] = MessageType.SaveSucess;
             }
             catch (Exception ex)
@@ -72,15 +62,15 @@ namespace Exams.Areas.admin.Controllers
             return RedirectToAction("List", new { ExamId = data.ExamId });
         }
         
-        public IActionResult Delete(Guid id, Guid examId)
+        public async Task<IActionResult> Delete(Guid id, Guid examId)
         {
             TempData["MessageType"] = null;
             try
             {
-                var question = _Qusetion.GetById(id);
+                var question =await _Qusetion.GetById(id);
                 if (question != null)
                 {
-                    _Qusetion.ChangeStatus(id, Guid.NewGuid());
+                   await _Qusetion.ChangeStatus(id, Guid.NewGuid());
                     TempData["MessageType"] = MessageType.DeleteSucess;
                 }
                 else

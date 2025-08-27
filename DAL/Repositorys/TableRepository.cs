@@ -5,6 +5,7 @@ using BL.Exceptions;
 using Exams.Contracts;
 using DAL.Context;
 using Domin;
+using System.Threading.Tasks;
 
 namespace Exams.Repositorys
 {
@@ -21,11 +22,12 @@ namespace Exams.Repositorys
             _logger = log;
         }
 
-        public List<T> GetAll()
+        public  async Task<List<T>> GetAll()
         {
             try
             {
-                return _dbSet.Where(a => a.CurrentState > 0).AsNoTracking().ToList();
+                //return  _dbSet.Where(a => a.CurrentState > 0).AsNoTracking().ToList();
+                return await _dbSet.Where(a => a.CurrentState > 0).AsNoTracking().ToListAsync();
             }
             catch (Exception ex)
             {
@@ -33,11 +35,13 @@ namespace Exams.Repositorys
             }
         }
         // الحصول على كائن بواسطة الـ Idtype 'BL.Exceptions.DataAccessException' was 
-        public T GetById(Guid id)
+        public async Task<T> GetById(Guid id)
         {
             try
             {
-                return _dbSet.Where(a => a.Id == id).AsNoTracking().FirstOrDefault();
+                return await _dbSet.Where(a => a.Id == id)
+                                   .AsNoTracking()
+                                   .FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -45,13 +49,13 @@ namespace Exams.Repositorys
             }
         }
         // إضافة كائن جديد
-        public bool Add(T entity)
+        public async Task<bool> Add(T entity)
         {
             try
             {
                 entity.CreatedDate = DateTime.Now;
-                _dbSet.Add(entity);
-                _context.SaveChanges();
+                 _dbSet.Add(entity);
+                await _context.SaveChangesAsync();
                 return true;
             }
             catch (Exception ex)
@@ -61,13 +65,13 @@ namespace Exams.Repositorys
         }
 
         // تحديث كائن موجود
-        public bool Update(T entity)
+        public async Task<bool> Update(T entity)
         {
             try
             {
 
 
-                var dbData = GetById(entity.Id);
+                var dbData =await GetById(entity.Id);
                 //_context.Entry(dbData).State = EntityState.Detached; // فصل الكيان القديم
 
                 entity.CreatedDate = dbData.CreatedDate;
@@ -75,7 +79,7 @@ namespace Exams.Repositorys
                 entity.UpdatedDate = DateTime.Now;
                 entity.CurrentState = 1;
                 _context.Entry(entity).State = EntityState.Modified;
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
                 return true;
             }
             catch (Exception ex)
@@ -84,13 +88,13 @@ namespace Exams.Repositorys
             }
         }
         // حذف كائن (يتم حذف الكائن من خلال تغيير حالته بدلًا من حذفه فعليًا)
-        public bool Delete(T entity)
+        public async Task<bool> Delete(T entity)
         {
             try
             {
                 // الحذف المنطقي بتغيير حالة الكائن إلى 0 (غير نشط)
                 _context.Entry(entity).State = EntityState.Modified;
-                _context.SaveChanges();
+             await   _context.SaveChangesAsync();
                 return true;
             }
 
@@ -100,18 +104,18 @@ namespace Exams.Repositorys
             }
         }
         // تغيير حالة الكائن (على سبيل المثال تفعيل أو إلغاء تفعيل)
-        public bool ChangeStatus(Guid id, int status = 1)
+        public async Task<bool> ChangeStatus(Guid id, int status = 1)
         {
             try
             {
-                var entity = GetById(id);
+                var entity = await GetById(id);
                 if (entity != null)
                 {
                     entity.CurrentState = status;
                     entity.UpdatedBy = Guid.NewGuid();
                     entity.UpdatedDate = DateTime.Now;
                     _context.Entry(entity).State = EntityState.Modified;
-                    _context.SaveChanges();
+                  await  _context.SaveChangesAsync();
                     return true;
                 }
                 return false;  // في حال لم يتم العثور على الكائن

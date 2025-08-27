@@ -12,7 +12,7 @@ namespace BL.Dtos
     {
 
         [Required(ErrorMessage = "Question text is required.")]
-        [StringLength(500, MinimumLength = 5, ErrorMessage = "Question must be between 5 and 500 characters.")]
+        [StringLength(500, MinimumLength = 3, ErrorMessage = "Question must be between 5 and 500 characters.")]
         public string QuestionText { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "ExamId is required.")]

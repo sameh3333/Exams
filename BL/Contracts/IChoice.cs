@@ -10,6 +10,8 @@ namespace BL.Contracts
 {
     public interface IChoice : IBaseServices<TbChoice, TbChoiceDto>
     {
-       
+       Task< List<TbChoiceDto>> GetByQuestionId(Guid questionId);
+        Task< TbChoiceDto> EditChoice(Guid? id, Guid questionId);
+        Task<bool>   SaveChoic(TbChoiceDto choiceDto);
     }
 }

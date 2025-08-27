@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Exams.Herpers;
 using BL.Exceptions;
 using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
 namespace Exams.Areas.admin.Controllers
 {
     [Area("admin")]
@@ -19,15 +20,16 @@ namespace Exams.Areas.admin.Controllers
             _Exam = exam;
             _logger = logger;
         }
-        public IActionResult List()
+
+        public async Task<IActionResult> List()
         {
-            var getdata = _Exam.GetAll();
+            var getdata =await _Exam.GetAll();
 
             return View(getdata);
         }
-        public IActionResult Edit(Guid? Id)
+        public async Task<IActionResult> Edit(Guid? Id)
         {
-            var data = Id.HasValue ? _Exam.GetById((Guid)Id) : new TbExamDto();
+            var data = Id.HasValue ?await _Exam.GetById((Guid)Id) : new TbExamDto();
             return View(data);
 
         }
@@ -41,9 +43,9 @@ namespace Exams.Areas.admin.Controllers
             try
             {
                 if (data.Id == Guid.Empty)
-                    _Exam.Add(data, data.Id);
+                   await _Exam.Add(data);
                 else
-                    _Exam.Update(data, data.Id);
+                   await _Exam.Update(data);
                 TempData["MessageType"] = MessageType.SaveSucess;
             }
             catch (Exception ex)
@@ -54,12 +56,12 @@ namespace Exams.Areas.admin.Controllers
             }
             return RedirectToAction("List");
         }
-        public IActionResult Delete(Guid id)
+        public async Task<IActionResult> Delete(Guid id)
         {
             TempData["MessageType"] = null;
             try
             {
-                _Exam.ChangeStatus(id, Guid.NewGuid());
+              await  _Exam.ChangeStatus(id, Guid.NewGuid());
                TempData["MessageType"] = MessageType.DeleteSucess;
             }
             catch (Exception ex)

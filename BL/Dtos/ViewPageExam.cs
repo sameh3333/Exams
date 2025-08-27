@@ -1,9 +1,8 @@
 ﻿
 using BL.Dtos;
 using Domin;
-using BL.Services;
 
-namespace Exams.Models
+namespace DAL.Dtos
 {
     public class ViewPageExam
     {

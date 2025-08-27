@@ -1,13 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Serilog;
+﻿using BL.Contracts;
 using BL.Maping;
-using BL.Contracts;
-using DAL.Context;
-using Exams.Contracts;
 using BL.Services;
+using DAL.Context;
+
+using Exams.Contracts;
+using Exams.Models;
 using Exams.Repositorys;
 using Microsoft.AspNetCore.Identity;
-using Exams.Models;
+using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 namespace Exams
 {
@@ -21,19 +22,21 @@ namespace Exams
             ConfigureServices(builder);
 
             var app = builder.Build();
-
-            // ✅ إضافة الأدوار وإنشاء المستخدم الإداري
+            // ✅ تشغيل SeedData هنا
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
-                await SeedRolesAndAdminAsync(services);
+                var context = services.GetRequiredService<ExamsContext>();
+                var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+                await ContextConfig.SeedDataAsync(context, userManager, roleManager);
             }
 
-            // ✅ تهيئة التطبيق وتشغيله
             ConfigureApp(app);
             await app.RunAsync();
         }
-
+     
         private static void ConfigureServices(WebApplicationBuilder builder)
         {
             builder.Services.AddControllersWithViews();
@@ -43,6 +46,8 @@ namespace Exams
             builder.Services.AddScoped<IQuestion, QuestionServices>();
             builder.Services.AddScoped<IChoice, ChoiceServices>();
             builder.Services.AddScoped<BL.Contracts.IResult, ResultServices>();
+            builder.Services.AddScoped<IUserServices, UserServices>();
+           
 
             // ✅ ربط `DbContext` بقاعدة البيانات
             builder.Services.AddDbContext<ExamsContext>(options =>
@@ -52,7 +57,6 @@ namespace Exams
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ExamsContext>()
                 .AddDefaultTokenProviders();
-
             // ✅ ضبط إعدادات المصادقة
             builder.Services.ConfigureApplicationCookie(options =>
             {
@@ -61,12 +65,13 @@ namespace Exams
             });
             builder.Services.Configure<IdentityOptions>(options =>
             {
-                options.Password.RequireDigit = true;    // 🚫 إلغاء شرط وجود رقم
+                options.Password.RequireDigit = false;    // 🚫 إلغاء شرط وجود رقم
                 options.Password.RequiredLength = 6;     // 🔢 الحد الأدنى 6 أحرف فقط
-                options.Password.RequireNonAlphanumeric = true; // 🚫 إلغاء شرط الرموز
-                options.Password.RequireUppercase = true; // 🚫 إلغاء شرط الحروف الكبيرة
+                options.Password.RequireNonAlphanumeric = false; // 🚫 إلغاء شرط الرموز
+                options.Password.RequireUppercase = false; // 🚫 إلغاء شرط الحروف الكبيرة
                 options.Password.RequireLowercase = false; // 🚫 إلغاء شرط الحروف الصغيرة
             });
+
 
             // ✅ إعداد Serilog لتسجيل الأحداث
             Serilog.Log.Logger = new LoggerConfiguration()
@@ -78,38 +83,6 @@ namespace Exams
                 .CreateLogger();
 
             builder.Host.UseSerilog();
-        }
-
-        private static async Task SeedRolesAndAdminAsync(IServiceProvider services)
-        {
-            var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-
-            string[] roles = { "Admin", "Student", "Teacher" };
-
-            // ✅ إنشاء الأدوار إذا لم تكن موجودة
-            foreach (var role in roles)
-            {
-                if (!await roleManager.RoleExistsAsync(role))
-                {
-                    await roleManager.CreateAsync(new IdentityRole(role));
-                }
-            }
-           
-            // ✅ إنشاء مستخدم إداري افتراضي
-            string adminEmail = "admin@Sameh.com";
-            string adminPassword = "Admin@123";
-
-            if (await userManager.FindByEmailAsync(adminEmail) == null)
-            {
-                var adminUser = new ApplicationUser { UserName = adminEmail, Email = adminEmail, FullName = "Admin User" };
-                var result = await userManager.CreateAsync(adminUser, adminPassword);
-
-                if (result.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(adminUser, "Admin");
-                }
-            }
         }
 
         private static void ConfigureApp(WebApplication app)

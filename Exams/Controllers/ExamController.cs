@@ -3,10 +3,12 @@ using BL.Dtos;
 using Exams.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace Exams.Controllers
 {
-    [Authorize(Roles = "Student")]
+    [Authorize]
+
     public class ExamController : Controller
     {
         private readonly ILogger<ExamController> _logger;
@@ -23,45 +25,17 @@ namespace Exams.Controllers
             _Choice = choice;
             _Result = result;
         }
-
         // ✅ عرض صفحة الامتحان مع الأسئلة
-        public IActionResult StartExam(Guid examId)
+       
+
+        public async Task<IActionResult> StartExam(Guid examId)
         {
-            var exam = _Exam.GetById(examId);
-            if (exam == null) return NotFound("Exam not found.");
-
-            var questions = _Qustion.GetAll()
-                                    .Where(q => q.ExamId == examId)
-                                    .Select(q => new TbQuestionDto
-                                    {
-                                        QuestionText = q.QuestionText,
-                                        Id = q.Id,
-                                        ExamId = q.ExamId,
-                                        Choices = _Choice.GetAll()
-                                                         .Where(c => c.QuestionId == q.Id)
-                                                         .ToList()
-                                    }).ToList();
-
-            if (!questions.Any() || questions.All(q => q.Choices.Count == 0))
-            {
-                TempData["MessageType"] = "NoQuestionsOrChoices";
-                return RedirectToAction("List", "Home");
-            }
-
-            var model = new ViewPageExam
-            {
-                Exam = exam,
-                Questions = questions
-            };
-
-            return View(model);
+            var model = await _Exam.StartExam(examId); // ✅ انتظار النتيجة
+            return View(model);                         // ✅ تمرير النتيجة الفعلية وليس Task
         }
-
-
         // ✅ استقبال الإجابات ومعالجتها
         [HttpPost]
-        [HttpPost]
-        public IActionResult SubmitExam(Dictionary<Guid, Guid> Answers, Guid ExamId)
+        public async Task<IActionResult> SubmitExam(Dictionary<Guid, Guid> Answers, Guid ExamId)
         {
             if (Answers == null || !Answers.Any())
             {
@@ -69,53 +43,18 @@ namespace Exams.Controllers
                 return RedirectToAction("StartExam", new { examId = ExamId });
             }
 
-            var exam = _Exam.GetById(ExamId);
-            if (exam == null) return NotFound("Exam not found.");
+            var studentName = User.Identity?.Name ?? "On Account";
 
-            var questions = _Qustion.GetAll().Where(q => q.ExamId == ExamId).ToList();
-            int totalQuestions = questions.Count;
-            int correctAnswers = 0;
+            // استخدام الـ Service Async
+            int score = await _Exam.SubmitExam(Answers, ExamId, studentName);
 
-            // ✅ التحقق من صحة الإجابات
-            foreach (var question in questions)
-            {
-                var correctChoice = _Choice.GetAll()
-                                           .Where(c => c.QuestionId == question.Id && c.IsCorrect)
-                                           .Select(c => c.Id) // ✅ استخراج الـ ID الصحيح فقط
-                                           .FirstOrDefault();
-
-                if (Answers.TryGetValue(question.Id, out Guid selectedChoiceId))
-                {
-                    if (correctChoice != Guid.Empty && correctChoice == selectedChoiceId)
-                    {
-                        correctAnswers++;
-                    }
-                }
-            }
-
-            // ✅ حساب النتيجة النهائية
-            int score = totalQuestions > 0 ? (int)((double)correctAnswers / totalQuestions * 100) : 0;
-
-            // ✅ حفظ النتيجة في قاعدة البيانات
-            TbResultDto result = new TbResultDto
-            {
-                Id = Guid.NewGuid(),
-                StudentName = User.Identity?.Name ?? "Unknown Student",
-                ExamId = ExamId,
-                Score = score,
-                TakenDate = DateTime.Now
-            };
-            _Result.Add(result, result.Id);
-
-            TempData["MessageType"] = "ExamSubmitted";
             return RedirectToAction("ExamResult", new { examId = ExamId, score = score });
         }
 
-
         // ✅ عرض صفحة النتيجة بعد الامتحان
-        public IActionResult ExamResult(Guid examId, int score)
+        public async Task<IActionResult> ExamResult(Guid examId, int score)
         {
-            var exam = _Exam.GetById(examId);
+            var exam = await _Exam.GetById(examId);
             if (exam == null) return NotFound("Exam not found.");
 
             ViewBag.ExamTitle = exam.Title;
@@ -123,5 +62,8 @@ namespace Exams.Controllers
 
             return View();
         }
+
+        // ✅ عرض صفحة النتيجة بعد الامتحان
+     
     }
 }

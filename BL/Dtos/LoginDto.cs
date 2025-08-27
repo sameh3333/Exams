@@ -2,7 +2,7 @@
 
 namespace Exams.Models
 {
-    public class LoginViewModel
+    public class LoginDto
     {
         [Required]
         [EmailAddress]
@@ -12,6 +12,5 @@ namespace Exams.Models
         [DataType(DataType.Password)]
         public string Password { get; set; }
 
-        public bool RememberMe { get; set; }
     }
 }

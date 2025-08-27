@@ -2,7 +2,7 @@
 
 namespace Exams.Models
 {
-    public class RegisterViewModel
+    public class RegisterDto
     {
         [Required(ErrorMessage = "Full Name is required.")]
         [StringLength(50, ErrorMessage = "Full Name must be between 3 and 50 characters.", MinimumLength = 3)]
@@ -25,8 +25,6 @@ namespace Exams.Models
         [Phone]
         public string PhoneNumber { get; set; }
 
-        [Required(ErrorMessage = "Role selection is required.")]
-        [Display(Name = "User Role")]
-        public string Role { get; set; }
+      
     }
 }

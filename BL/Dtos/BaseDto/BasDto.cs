@@ -8,6 +8,7 @@ namespace BL.Dtos.BaseDto
 {
     public  class BasDto
     {
-        public Guid Id { get; set; } 
+        public Guid Id { get; set; }
+    
     }
 }

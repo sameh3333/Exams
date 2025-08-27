@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Domin;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +10,5 @@ namespace BL.Maping
     public  interface IMapper
     {
         public TDestination Map<TSource, TDestination>();
-
     }
 }

@@ -6,6 +6,7 @@ using BL.Exceptions;
 using Exams.Repositorys;
 using Domin;
 using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
 
 namespace Exams.Areas.admin.Controllers
 {
@@ -24,21 +25,17 @@ namespace Exams.Areas.admin.Controllers
             _logger = logger;
         }
 
-        public IActionResult List(Guid questionId)
+        public async Task<IActionResult> List(Guid questionId)
         {
-            var choices = _Choice.GetAll()
-                                 .Where(q => q.QuestionId == questionId)
-                                 .ToList();
-
+            var choices =await _Choice.GetByQuestionId(questionId);
             ViewBag.QuestionId = questionId;
             return View(choices);
 
         }
 
-        public IActionResult Edit(Guid? Id, Guid questionId)
+        public async Task<IActionResult> Edit(Guid? Id, Guid questionId)
         {
-            var data = Id.HasValue && Id != Guid.Empty ? _Choice.GetById((Guid)Id) : new TbChoiceDto { QuestionId = questionId };
-            ViewBag.QuestionId = questionId;
+            var data =await _Choice.EditChoice(Id, questionId);
             return View(data);
         }
 
@@ -48,66 +45,29 @@ namespace Exams.Areas.admin.Controllers
         {
             TempData["MessageType"] = null;
 
-            if (data.QuestionId == Guid.Empty)
+            if (data == null)
             {
                 TempData["MessageType"] = MessageType.SaveFailed;
-                return RedirectToAction("Edit", new { Id = data.Id, QuestionId = data.QuestionId });
+                return RedirectToAction("List", new { questionId = data?.QuestionId });
             }
 
             try
             {
-                if (data.IsCorrect)
-                {
-                    // ✅ اجعل كل الاختيارات الأخرى غير صحيحة إذا تم تحديد هذا الاختيار كإجابة صحيحة
-                    var allChoices = _Choice.GetAll().Where(q => q.QuestionId == data.QuestionId).ToList();
-                    foreach (var choice in allChoices)
-                    {
-                        var currentCorrectChoice = _Choice.GetAll()
-                                             .FirstOrDefault(q => q.QuestionId == data.QuestionId && q.IsCorrect);
+                // استدعاء Service لحفظ الاختيار (إضافة أو تعديل)
+                var result =await  _Choice.SaveChoic(data);
 
-                        if (choice.Id != data.Id) // ✅ تأكد من عدم تحديث نفس الإجابة التي يتم حفظها الآن
-                        {
-                            choice.IsCorrect = false;
-                            _Choice.Update(choice, choice.Id);
-                            TempData["MessageType"] = MessageType.SaveSucess;
-                        }
-                    }
-                }
-
-                if (data.Id == Guid.Empty)
-                {
-                    // ✅ إضافة اختيار جديد
-                    _Choice.Add(data, data.Id);
-                    TempData["MessageType"] = MessageType.SaveSucess;
-                }
-                else
-                {
-                    // ✅ تحديث اختيار موجود
-                    var existingChoice = _Choice.GetById(data.Id);
-                    if (existingChoice == null)
-                    {
-                        TempData["MessageType"] = MessageType.SaveFailed;
-                        return RedirectToAction("Edit", new { Id = data.Id, QuestionId = data.QuestionId });
-                    }
-
-                    // تحديث البيانات
-                    existingChoice.ChoiceText = data.ChoiceText;
-                    existingChoice.IsCorrect = data.IsCorrect;
-
-                    _Choice.Update(existingChoice, existingChoice.Id);
-                }
-
-                TempData["MessageType"] = MessageType.SaveSucess;
+                TempData["MessageType"] = result ? MessageType.SaveSucess : MessageType.SaveFailed;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error saving choice.");
                 TempData["MessageType"] = MessageType.SaveFailed;
             }
 
             return RedirectToAction("List", new { questionId = data.QuestionId });
         }
 
-        public IActionResult Delete(Guid id, Guid questionId)
+        public async Task<IActionResult> Delete(Guid id, Guid questionId)
         {
             TempData["MessageType"] = null;
 
@@ -116,7 +76,7 @@ namespace Exams.Areas.admin.Controllers
                 var choice = _Choice.GetById(id);
                 if (choice != null)
                 {
-                    _Choice.ChangeStatus(id, Guid.NewGuid());
+                   await _Choice.ChangeStatus(id, Guid.NewGuid());
                     TempData["MessageType"] = MessageType.DeleteSucess;
                 }
                 else

@@ -1,101 +1,84 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using BL.Contracts;
+using BL.Dtos;
+using Exams.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Linq;
 using System.Threading.Tasks;
-using Exams.Models;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Exams.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
+ 
+        private readonly IUserServices _userServices;        
 
-        public AccountController(UserManager<ApplicationUser> userManager,
-                                 SignInManager<ApplicationUser> signInManager,
-                                 RoleManager<IdentityRole> roleManager)
+        public AccountController(IUserServices userServices  )
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
-            _roleManager = roleManager;
+           _userServices = userServices;
         }
 
-        private void LoadRoles() => ViewBag.Roles = new SelectList(_roleManager.Roles.Select(r => r.Name));
-
+        [HttpGet]
         public IActionResult Login() => View();
 
-        [HttpPost]
-        public async Task<IActionResult> Login(LoginViewModel model)
-        {
-            if (!ModelState.IsValid) return View(model);
-
-            var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null || !(await _signInManager.PasswordSignInAsync(user.UserName, model.Password, model.RememberMe, false)).Succeeded)
-            {
-                ModelState.AddModelError("", "Invalid login attempt.");
-                return View(model);
-            }
-
-            return RedirectToAction("List", "Home");
-        }
-
+        [HttpGet]
         public IActionResult Register()
         {
-            LoadRoles();
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> Register(RegisterViewModel model)
+        public async Task<IActionResult> Register(UserDto model)
         {
-            LoadRoles();
             if (!ModelState.IsValid) return View(model);
+            var registar = await _userServices.RegisterAsync(model);
 
-            if (await _userManager.FindByEmailAsync(model.Email.ToLower()) != null)
-            {
-                ModelState.AddModelError("", "This email is already registered.");
-                return View(model);
-            }
+            if (!registar.Success)
+                return View("Register",model);
 
-            if (!await EnsureRoleExistsAsync(model.Role))
-            {
-                ModelState.AddModelError("", "The selected role does not exist.");
-                return View(model);
-            }
-
-            var user = new ApplicationUser
-            {
-                UserName = model.Email,
-                Email = model.Email,
-                FullName = model.FullName,
-                PhoneNumber = model.PhoneNumber
-            };
-
-            var result = await _userManager.CreateAsync(user, model.Password);
-            if (!result.Succeeded)
-            {
-                foreach (var error in result.Errors)
-                    ModelState.AddModelError("", error.Description);
-                return View(model);
-            }
-
-            await _userManager.AddToRoleAsync(user, model.Role);
-            await _signInManager.SignInAsync(user, isPersistent: false);
             return RedirectToAction("List", "Home");
         }
 
-        public async Task<IActionResult> Logout()
+            public async Task<IActionResult> Logout()
+            {
+                await _userServices.LogoutAsenc();
+                return RedirectToAction("Login");
+            }
+
+        //[HttpPost]
+        //public async Task<IActionResult> Login(LoginDto model)
+        //{
+        //    if (!ModelState.IsValid) return View(model);
+        //    var lodin = await _userServices.LoginAsync(model);
+        //    if (!lodin.Success)
+        //        return View("Login", model);
+        //    return RedirectToAction("List", "Home");
+        //}
+        [HttpPost]
+        public async Task<IActionResult> Login(LoginDto model)
         {
-            await _signInManager.SignOutAsync();
-            return RedirectToAction("Login");
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var login = await _userServices.LoginAsync(model);
+
+            if (!login.Success)
+                return View("Login", model);
+
+            // ✅ بعد تسجيل الدخول بنجاح
+            var dbUser = await _userServices.GetUserByEmailAsync(model.Email);
+            var role = dbUser?.Role?.ToLower();
+
+            if (role == "admin")
+            {
+                return RedirectToRoute(new { area = "Admin", controller = "Home", action = "Index" });
+            }
+            else
+            {
+                return RedirectToAction("List", "Home");
+            }
         }
 
-        private async Task<bool> EnsureRoleExistsAsync(string roleName)
-        {
-            if (await _roleManager.RoleExistsAsync(roleName)) return true;
-            return false;
-        }
     }
 }

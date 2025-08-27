@@ -9,12 +9,12 @@ namespace Exams.Contracts
 
     public interface IGenericRepository<T> where T : BaseTable
     {
-        List<T> GetAll();
-        T GetById(Guid id);  // أو Domines.Guid إذا كنت تستخدمه`
-        bool Add(T entity);
-        bool Update(T entity);
-        bool Delete(T entity);
-        bool ChangeStatus(Guid id, int status = 1);  // أو Domines.Guid
+        Task<List<T>> GetAll();
+        Task<T> GetById(Guid id);  // أو Domines.Guid إذا كنت تستخدمه`
+        Task<bool> Add(T entity);
+        Task<bool> Update(T entity);
+        Task<bool> Delete(T entity);
+        Task<bool> ChangeStatus(Guid id, int status = 1);  // أو Domines.Guid
 
 
         

@@ -1,4 +1,5 @@
 ﻿using BL.Dtos;
+using DAL.Dtos;
 using Domin;
 using System;
 using System.Collections.Generic;
@@ -10,5 +11,7 @@ namespace BL.Contracts
 {
     public interface IEaxme : IBaseServices<TbExam, TbExamDto>
     {
+        Task<ViewPageExam> StartExam(Guid examId);
+        Task<int> SubmitExam(Dictionary<Guid, Guid> answers, Guid examId, string studentName);
     }
 }

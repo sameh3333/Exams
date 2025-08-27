@@ -4,9 +4,11 @@ using System.Diagnostics;
 using BL.Contracts;
 using BL.Services;
 using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
 namespace Exams.Controllers
 {
-    [Authorize(Roles = "Student")]
+
+    [Authorize]
     public class HomeController : Controller
     { 
         private readonly ILogger<HomeController> _logger;
@@ -19,9 +21,9 @@ namespace Exams.Controllers
             _Question = question;   
            
         }
-        public IActionResult List()
+        public async Task<IActionResult> List()
         {
-            var getdata = _eaxme.GetAll();
+            var getdata =await _eaxme.GetAll();
             return View(getdata);
         }
       
