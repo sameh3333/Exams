@@ -1,4 +1,4 @@
-﻿@model Exams.Models.LoginDto
+﻿@* @model Exams.Models.LoginDto
 
 <h2>Login</h2>
 <form asp-action="Login">
@@ -18,3 +18,45 @@
 
     <button type="submit" class="btn btn-primary">Login</button>
 </form>
+ *@
+@model Exams.Models.LoginDto
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-lg rounded-3">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3>🔑 Login</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Login" method="post">
+                        <div class="form-group mb-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" placeholder="Enter your email" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Password" class="form-label"></label>
+                            <input asp-for="Password" type="password" class="form-control" placeholder="Enter your password" />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">✅ Login</button>
+                        </div>
+                    </form>
+
+                   
+
+                    <div class="text-center">
+                        <!-- زر تغيير كلمة السر يروح لصفحة تانية -->
+                        <a href="/Account/ChangePassword" class="btn btn-warning">
+                            🔒 Change Password
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

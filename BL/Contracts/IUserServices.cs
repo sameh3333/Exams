@@ -11,7 +11,7 @@ namespace BL.Contracts
 {
     public  interface IUserServices
     {
-
+        Task<UserRegusterDto> ChangePasswordAsync(string userId, ChangePasswordDto model);
         Task<IEnumerable<UserDto>> GetAllUsersAsync();
         Task<UserRegusterDto> RegisterAsync(UserDto registerDto);
         Task<UserRegusterDto> LoginAsync(LoginDto loginDto);
@@ -20,7 +20,6 @@ namespace BL.Contracts
         Task<UserDto> GetUserByEmailAsync(string Eamil);
         Task<IEnumerable<UserDto>> GetUserByIdAsync();
         Guid GetLoggedInServices();
-
     }
 
     }

@@ -1,6 +1,8 @@
 ﻿using BL.Contracts;
 using BL.Dtos;
+using Exams.Herpers;
 using Exams.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -22,7 +24,34 @@ namespace Exams.Controllers
         [HttpGet]
         public IActionResult Login() => View();
 
+
+
+
         [HttpGet]
+
+        [HttpPost]
+        public async Task<IActionResult> ChangePassword(ChangePasswordDto model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var userId = _userServices.GetLoggedInServices().ToString();
+
+            var result = await _userServices.ChangePasswordAsync(userId, model);
+
+            if (result.Success)
+            {
+                TempData["MessageType"] = MessageType.SaveSucess;
+                return RedirectToAction("List", "Home");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError("", error);
+            }
+
+            return View(model);
+        }
+
         public IActionResult Register()
         {
             return View();
@@ -46,15 +75,7 @@ namespace Exams.Controllers
                 return RedirectToAction("Login");
             }
 
-        //[HttpPost]
-        //public async Task<IActionResult> Login(LoginDto model)
-        //{
-        //    if (!ModelState.IsValid) return View(model);
-        //    var lodin = await _userServices.LoginAsync(model);
-        //    if (!lodin.Success)
-        //        return View("Login", model);
-        //    return RedirectToAction("List", "Home");
-        //}
+        
         [HttpPost]
         public async Task<IActionResult> Login(LoginDto model)
         {

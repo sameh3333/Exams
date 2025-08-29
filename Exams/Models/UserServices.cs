@@ -2,6 +2,8 @@
 using BL.Dtos;
 using DAL.Context;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using System.Data.Entity;
 using System.Linq.Expressions;
 using System.Security.Claims;
 
@@ -97,8 +99,8 @@ namespace Exams.Models
 
         public Guid GetLoggedInServices()
         {
+
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-            // var refrsshToken = _IRefreshTokens.GetByToken(refrsshToken);
             return Guid.Parse(userId);
         }
 
@@ -139,7 +141,7 @@ namespace Exams.Models
 
         public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
         {
-            return  _context.Users
+            return await  _context.Users
                 .Select(u => new UserDto
                 {
                     Id = Guid.Parse(u.Id),
@@ -152,8 +154,72 @@ namespace Exams.Models
                             where ur.UserId == u.Id
                             select r.Name).FirstOrDefault() ?? "User"
                 })
-                .ToList();
+                .ToListAsync();
         }
+
+
+        public async Task<UserRegusterDto> ChangePasswordAsync(string userId, ChangePasswordDto model)
+        {
+            // ✅ Validations أولية
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return new UserRegusterDto
+                {
+                    Success = false,
+                    Errors = new[] { "❌ UserId is required" }
+                };
+            }
+
+            if (model == null || string.IsNullOrWhiteSpace(model.OldPassword) || string.IsNullOrWhiteSpace(model.NewPassword))
+            {
+                return new UserRegusterDto
+                {
+                    Success = false,
+                    Errors = new[] { "❌ All password fields are required" }
+                };
+            }
+
+            if (model.NewPassword != model.ConfirmPassword)
+            {
+                return new UserRegusterDto
+                {
+                    Success = false,
+                    Errors = new[] { "❌ كلمة السر الجديدة غير متطابقة" }
+                };
+            }
+
+            // 🔍 جلب المستخدم
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return new UserRegusterDto
+                {
+                    Success = false,
+                    Errors = new[] { "❌ المستخدم غير موجود" }
+                };
+            }
+
+            // 🔄 تغيير كلمة السر
+            var result = await _userManager.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                return new UserRegusterDto
+                {
+                    Success = false,
+                    Errors = result.Errors.Select(e => e.Description)
+                };
+            }
+
+            // ✅ تحديث SecurityStamp (يلغي أي Logins قديمة عشان الأمان)
+            await _userManager.UpdateSecurityStampAsync(user);
+
+            return new UserRegusterDto
+            {
+                Success = true
+            };
+        }
+
 
 
 

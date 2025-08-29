@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Exams.styles.css" asp-append-version="true" />
+    <link href="~/homepage/filename.css" rel="stylesheet" />
+
     @RenderSection("Styles", false)
 </head>
 <body>
@@ -20,9 +22,13 @@
         <!-- 🔥 Header / Navbar -->
         <nav class="navbar navbar-expand-lg navbar-dark">
             <div class="container">
-                <a class="navbar-brand" href="/">
-                    <i class="fas fa-graduation-cap"></i> Exam System
-                </a>
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-graduation-cap"></i> Exam System
+            </a>
+            <!-- زر تغيير كلمة السر يروح لصفحة تانية -->
+          
+          
+
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -40,9 +46,28 @@
                         <ul class="navbar-nav ms-auto">
                             @if (User.Identity.IsAuthenticated)
                             {
-                                <li class="nav-item">
-                                    <span class="nav-link text-white">Welcome, @User.Identity.Name!</span>
+                               
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link text-white no-caret text-danger" href="#" id="userDropdown" role="button">
+                                        👤 Welcome, @User.Identity.Name!
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                        <li>
+                                            <a class="dropdown-item" href="/Account/ChangePassword">
+                                                🔒 Change Password
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    🚪 Logout
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </li>
+
+
 
                                 @if (User.IsInRole("Admin"))
                                 {
@@ -50,12 +75,7 @@
                                         <a class="nav-link" href="/Admin/Home/Index"><i class="fas fa-user-shield"></i> Admin Panel</a>
                                     </li>
                                 }
-                                @if (User.IsInRole("Teacher"))
-                                {
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="/Admin/Exam/List"><i class="fas fa-plus-circle"></i> Create Exam</a>
-                                    </li>
-                                }
+                              
                                 <li class="nav-item">
                                     <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                                         <button type="submit" class="btn btn-danger ms-3">
