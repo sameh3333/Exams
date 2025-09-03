@@ -2,8 +2,10 @@
 using BL.Maping;
 using BL.Services;
 using DAL.Context;
+using DAL.Repositorys;
+using DAL.Contracts;
 
-using Exams.Contracts;
+    using Exams.Contracts;
 using Exams.Models;
 using Exams.Repositorys;
 using Microsoft.AspNetCore.Identity;
@@ -47,7 +49,8 @@ namespace Exams
             builder.Services.AddScoped<IChoice, ChoiceServices>();
             builder.Services.AddScoped<BL.Contracts.IResult, ResultServices>();
             builder.Services.AddScoped<IUserServices, UserServices>();
-           
+            builder.Services.AddScoped<IUnitOfWork  , UnitOfWork>();
+
 
             // ✅ ربط `DbContext` بقاعدة البيانات
             builder.Services.AddDbContext<ExamsContext>(options =>

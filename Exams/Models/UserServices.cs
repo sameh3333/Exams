@@ -24,6 +24,7 @@ namespace Exams.Models
         }
 
 
+
         public async Task<UserRegusterDto> RegisterAsync(UserDto registerDto)
         {
             if (registerDto.Password != registerDto.ConfirmPassword)
@@ -141,7 +142,7 @@ namespace Exams.Models
 
         public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
         {
-            return await  _context.Users
+            return   _context.Users
                 .Select(u => new UserDto
                 {
                     Id = Guid.Parse(u.Id),
@@ -154,7 +155,7 @@ namespace Exams.Models
                             where ur.UserId == u.Id
                             select r.Name).FirstOrDefault() ?? "User"
                 })
-                .ToListAsync();
+                .ToList();
         }
 
 

@@ -35,7 +35,7 @@ namespace Exams.Areas.admin.Controllers
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Save(TbExamDto data)
+        public async Task<IActionResult> Save(TbExamDto data)   
         {
             TempData["MessageType"] = null;
             if (!ModelState.IsValid)

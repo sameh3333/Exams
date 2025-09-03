@@ -26,12 +26,7 @@ namespace BL.Services
         }
 
 
-        //List<TbQuestionDto> IQuestion. GetByExamId(Guid? examId)
-        //{
-        //    var allChoices = _repo.GetAll().Where(q => q.ExamId == examId).ToList();
-        //    return _mapper.Map<List<TbQuestion>, List<TbQuestionDto>>(allChoices);
-        //  //  return  GetAll().Where(q => q.ExamId == examId).ToList();
-        //}
+     
 
 
         public async Task<List<TbQuestionDto>> GetByExamId(Guid? examId)

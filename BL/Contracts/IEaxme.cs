@@ -11,6 +11,9 @@ namespace BL.Contracts
 {
     public interface IEaxme : IBaseServices<TbExam, TbExamDto>
     {
+
+        public Task<Guid> Create(ExamWithQuestionsViewModel model);
+          Task<Guid> AddExamWithQuestionsAndChoices(TbExamDto examDto, List<TbQuestionDto> questions);
         Task<ViewPageExam> StartExam(Guid examId);
         Task<int> SubmitExam(Dictionary<Guid, Guid> answers, Guid examId, string studentName);
     }

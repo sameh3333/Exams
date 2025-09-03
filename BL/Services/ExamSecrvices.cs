@@ -1,16 +1,10 @@
-﻿using BL.Contracts;
-using Domin;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using AutoMapper;
+using BL.Contracts;
 using BL.Dtos;
-using Exams.Contracts;
-using System.Threading;
-using AutoMapper;
+using DAL.Contracts;
 using DAL.Dtos;
-using Exams.Models;
+using Domin;
+using Exams.Contracts;
 namespace BL.Services
 {
     public  class ExamSecrvices :BaseServices<TbExam,TbExamDto>, IEaxme
@@ -21,24 +15,103 @@ namespace BL.Services
         private readonly IChoice _choiceRepo;
         private readonly IMapper _mapper;
         private readonly IResult _resultRepo;
-
+        private readonly IUnitOfWork _uow;
         public ExamSecrvices(
          IGenericRepository<TbExam> redo,
        IQuestion questionRepo,
         IChoice choiceRepo,
          IMapper mapper,
          IUserServices userServices,
-            IResult resultRepo
+            IResult resultRepo,
+            IUnitOfWork uow
+
 
      ) : base(redo, mapper, userServices)
         {
+            _uow=uow;   
             _questionRepo = questionRepo;
-            _choiceRepo = choiceRepo;
+            _choiceRepo = choiceRepo;   
             _mapper = mapper;
             _resultRepo = resultRepo;
         }
 
 
+        public async Task<Guid> Create(ExamWithQuestionsViewModel model)
+        {
+            if (model == null || model.Questions == null || !model.Questions.Any())
+                throw new ArgumentException("البيانات غير مكتملة لإنشاء الامتحان.");
+
+            // نحول ViewModel إلى DTOs
+            var examDto = new TbExamDto
+            {
+                Title = model.Title,
+                Description = model.Description,
+            };
+
+            var questionDtos = model.Questions.Select(q => new TbQuestionDto
+            {
+                QuestionText = q.Text,
+                Choices = q.Choices.Select(c => new TbChoiceDto
+                {
+                    ChoiceText = c.Text,
+                    IsCorrect = c.IsCorrect
+                }).ToList()
+            }).ToList();
+
+            // نستدعي الميثود اللي بتحفظ
+            return await AddExamWithQuestionsAndChoices(examDto, questionDtos);
+        }
+
+        public async Task<Guid> AddExamWithQuestionsAndChoices( TbExamDto examDto,List<TbQuestionDto> questions)
+        {
+            if (examDto == null || questions == null || !questions.Any())
+                throw new ArgumentException("البيانات غير مكتملة لإنشاء الامتحان.");
+
+            await _uow.BeginTransactionAsync();
+            try
+            {
+                // 1️⃣ إضافة الامتحان
+                examDto.Id = Guid.NewGuid();
+                examDto.CreatedDate = DateTime.Now;
+                examDto.CurrentState = 1;
+
+                await _uow.Repository<TbExam>().Add(_mapper.Map<TbExam>(examDto));
+
+                // 2️⃣ إضافة الأسئلة والاختيارات
+                foreach (var questionDto in questions)
+                {
+                    questionDto.Id = Guid.NewGuid();
+                    questionDto.ExamId = examDto.Id;
+                    questionDto.CreatedDate = DateTime.Now;
+                    questionDto.CurrentState = 1;
+
+                    await _uow.Repository<TbQuestion>().Add(_mapper.Map<TbQuestion>(questionDto));
+
+                    if (questionDto.Choices != null && questionDto.Choices.Any())
+                    {
+                        foreach (var choiceDto in questionDto.Choices)
+                        {
+                            choiceDto.Id = Guid.NewGuid();
+                            choiceDto.QuestionId = questionDto.Id;
+                            choiceDto.CreatedDate = DateTime.Now;
+                            choiceDto.CurrentState = 1;
+
+                            await _uow.Repository<TbChoice>().Add(_mapper.Map<TbChoice>(choiceDto));
+                        }
+                    }
+                }
+
+                // 3️⃣ حفظ التغييرات والـ Commit
+                await _uow.CommitAsync();
+
+                return examDto.Id;
+            }
+            catch
+            {
+                await _uow.RollbackAsync();
+                throw;
+            }
+        }
 
         public async Task<DAL.Dtos.ViewPageExam> StartExam(Guid examId)
         {
