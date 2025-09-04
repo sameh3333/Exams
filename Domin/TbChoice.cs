@@ -9,6 +9,7 @@ public partial class TbChoice :BaseTable
 {
 
     public string ChoiceText { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true; // ✅ جديد لتعطيل الامتحان
 
     public bool IsCorrect { get; set; }
     [ForeignKey("Question")]

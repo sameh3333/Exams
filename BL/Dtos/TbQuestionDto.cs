@@ -10,6 +10,7 @@ namespace BL.Dtos
 {
     public  class TbQuestionDto : BasDto
     {
+        public bool IsActive { get; set; } = true; // ✅ جديد لتعطيل الامتحان
 
         [Required(ErrorMessage = "Question text is required.")]
         [StringLength(500, MinimumLength = 3, ErrorMessage = "Question must be between 5 and 500 characters.")]

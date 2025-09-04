@@ -16,6 +16,7 @@ namespace BL.Dtos
         [Required(ErrorMessage = "Choice text is required.")]
         [StringLength(50, ErrorMessage = "Choice text cannot exceed 500 characters.")]
         public string ChoiceText { get; set; }= string.Empty;
+        public bool IsActive { get; set; } = true; // ✅ جديد لتعطيل الامتحان
 
         public bool IsCorrect { get; set; }
         [ForeignKey("Question")]

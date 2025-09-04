@@ -11,7 +11,10 @@ namespace BL.Contracts
 {
     public interface IEaxme : IBaseServices<TbExam, TbExamDto>
     {
-
+        Task ToggleActive(Guid examId);
+        Task<bool> Edit(Guid examId, ExamWithQuestionsViewModel model);
+         Task<ExamWithQuestionsViewModel> GetExamWithQuestionsAsync(Guid examId);
+        Task<bool> Disable(Guid examId);
         public Task<Guid> Create(ExamWithQuestionsViewModel model);
           Task<Guid> AddExamWithQuestionsAndChoices(TbExamDto examDto, List<TbQuestionDto> questions);
         Task<ViewPageExam> StartExam(Guid examId);

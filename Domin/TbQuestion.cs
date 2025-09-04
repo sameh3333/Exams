@@ -10,7 +10,8 @@ public partial class TbQuestion : BaseTable
 
     public Guid ExamId { get; set; }
 
-   
+        public bool IsActive { get; set; } = true; // ✅ جديد لتعطيل الامتحان
+
 
     public virtual TbExam Exam { get; set; } = null!;
   

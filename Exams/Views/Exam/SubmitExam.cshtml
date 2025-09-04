@@ -3,3 +3,339 @@
 *@
 @{
 }
+@model BL.Dtos.ExamWithQuestionsViewModel
+
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-lg border-0 rounded-3">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="bi bi-journal-plus me-2"></i> Create New Exam</h3>
+                </div>
+                <div class="card-body p-4">
+                    <form id="exam-form" asp-controller="CreateExam" asp-action="Create" etarget="_blank" method="post" role="form">
+                        <!-- Exam Info -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Exam Title</label>
+                            <input type="text" asp-for="Title" class="form-control" placeholder="Enter exam title" required />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter exam description"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <hr />
+                        <!-- Questions -->
+                        <h4 class="mb-3 text-secondary"><i class="bi bi-question-circle me-2"></i> Questions</h4>
+                        <div class="accordion" id="questions-container"></div>
+
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="button" class="btn btn-outline-success" onclick="addQuestion()">
+                                <i class="bi bi-plus-circle"></i> Add Question
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Exam
+                            </button>
+                        </div>
+
+                        <div id="client-errors" class="alert alert-danger mt-3 d-none"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- لو مش مضافين بالفعل في _Layout -->
+    <!-- <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script> -->
+
+    <script>
+        let questionCounter = 0;
+
+        // ============ Helpers ============
+
+        // يعيد ترقيم كل الأسئلة والاختيارات وأسماء الحقول والـ IDs الخاصة بالـ accordion
+        function reindexQuestions() {
+            const qItems = document.querySelectorAll('#questions-container .accordion-item');
+
+            qItems.forEach((qEl, qIdx) => {
+                // IDs للـ accordion
+                const heading = qEl.querySelector('.accordion-header');
+                const btn = qEl.querySelector('.accordion-button');
+                const collapse = qEl.querySelector('.accordion-collapse');
+
+                heading.id = `heading-${qIdx}`;
+                btn.setAttribute('data-bs-target', `#collapse-${qIdx}`);
+                btn.setAttribute('aria-controls', `collapse-${qIdx}`);
+                btn.querySelector('.question-title-index').textContent = (qIdx + 1);
+                collapse.id = `collapse-${qIdx}`;
+                collapse.setAttribute('aria-labelledby', `heading-${qIdx}`);
+
+                // اسم السؤال
+                const qTextInput = qEl.querySelector('[data-field="question-text"]');
+                qTextInput.setAttribute('name', `Questions[${qIdx}].Text`);
+
+                // جروب الراديو لكل سؤال (منع تداخل الجروبات)
+                const radioGroupName = `q${qIdx}_correct`;
+
+                // إعادة ترقيم الاختيارات داخل السؤال
+                const choiceItems = qEl.querySelectorAll('.choice-item');
+                // امسح أي Hidden قديمة
+                qEl.querySelectorAll('input[type="hidden"][data-field="is-correct-hidden"]').forEach(h => h.remove());
+
+                let checkedChoiceIndex = -1;
+
+                choiceItems.forEach((cEl, cIdx) => {
+                    const cText = cEl.querySelector('[data-field="choice-text"]');
+                    const cRadio = cEl.querySelector('[data-field="choice-correct"]');
+
+                    cText.setAttribute('name', `Questions[${qIdx}].Choices[${cIdx}].Text`);
+
+                    // اضبط جروب الراديو و value
+                    cRadio.setAttribute('name', radioGroupName);
+                    cRadio.value = cIdx;
+
+                    // تظبيط التلوين حسب الـ checked
+                    if (cRadio.checked) {
+                        checkedChoiceIndex = cIdx;
+                    }
+                });
+
+                // أنشئ hidden جديد للإجابة الصحيحة لو في اختيار متعلم
+                if (checkedChoiceIndex >= 0) {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.dataset.field = 'is-correct-hidden';
+                    hidden.name = `Questions[${qIdx}].Choices[${checkedChoiceIndex}].IsCorrect`;
+                    hidden.value = 'true';
+                    qEl.querySelector('[data-field="choices-container"]').appendChild(hidden);
+                }
+            });
+        }
+
+        // تلوين الاختيار الصحيح داخل سؤال معين
+        function highlightCorrect(qIndex) {
+            const qEl = document.querySelectorAll('#questions-container .accordion-item')[qIndex];
+            if (!qEl) return;
+
+            const choiceItems = qEl.querySelectorAll('.choice-item');
+            choiceItems.forEach(ci => ci.classList.remove('border-success', 'bg-light'));
+
+            const checked = qEl.querySelector('[data-field="choice-correct"]:checked');
+            if (checked) {
+                const choiceItem = checked.closest('.choice-item');
+                if (choiceItem) {
+                    choiceItem.classList.add('border-success', 'bg-light');
+                }
+            }
+        }
+
+        // ============ Adders/Removers ============
+
+        function addQuestion() {
+            const qIdx = questionCounter++; // مجرد counter لا يعتمد عليه ModelBinder
+            const html = `
+                <div class="accordion-item mb-3">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse">
+                            <i class="bi bi-patch-question me-2 text-primary"></i>
+                            Question <span class="question-title-index">${qIdx + 1}</span>
+                        </button>
+                    </h2>
+                    <div class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <div class="mb-3">
+                                <input type="text" class="form-control"
+                                       data-field="question-text"
+                                       placeholder="Enter question text" required />
+                            </div>
+
+                            <div data-field="choices-container"></div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-sm btn-outline-success mt-2" onclick="addChoice(this)">
+                                    <i class="bi bi-plus-circle"></i> Add Choice
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="removeQuestion(this)">
+                                    <i class="bi bi-trash"></i> Remove Question
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            document.getElementById("questions-container").insertAdjacentHTML("beforeend", html);
+
+            // افتح السؤال الجديد
+            const lastItem = document.querySelector('#questions-container .accordion-item:last-child');
+            const btn = lastItem.querySelector('.accordion-button');
+            const collapse = lastItem.querySelector('.accordion-collapse');
+            // أربطهم مؤقتاً، وبعدين reindex هيظبط IDs
+            btn.setAttribute('data-bs-target', '#temp' + Math.random());
+            reindexQuestions();
+        }
+
+        function removeQuestion(btn) {
+            const item = btn.closest('.accordion-item');
+            if (item) {
+                item.remove();
+                reindexQuestions();
+            }
+        }
+
+        function addChoice(btn) {
+            // جبنا الكونتينر الصح
+            const qEl = btn.closest('.accordion-item');
+            const container = qEl.querySelector('[data-field="choices-container"]');
+            const html = `
+                <div class="choice-item card card-body border-light shadow-sm mb-2">
+                    <div class="d-flex align-items-center">
+                        <input type="text" class="form-control me-2"
+                               data-field="choice-text"
+                               placeholder="Choice text" required />
+                        <div class="form-check me-2">
+                            <input class="form-check-input" type="radio"
+                                   data-field="choice-correct"
+                                   onchange="onCorrectChanged(this)">
+                            <label class="form-check-label text-success">Correct</label>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeChoice(this)">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                </div>`;
+            container.insertAdjacentHTML("beforeend", html);
+            reindexQuestions();
+        }
+
+        function removeChoice(btn) {
+            const item = btn.closest('.choice-item');
+            if (item) {
+                item.remove();
+                reindexQuestions();
+            }
+        }
+
+        function onCorrectChanged(radio) {
+            // كل ما تتغير الإجابة الصحيحة لسؤال: هايلايت + reindex (عشان hidden)
+            const qEl = radio.closest('.accordion-item');
+            const qIndex = Array.from(document.querySelectorAll('#questions-container .accordion-item')).indexOf(qEl);
+            highlightCorrect(qIndex);
+            reindexQuestions();
+        }
+
+        // ============ Client-side Validation ============
+
+        function validateBeforeSubmit() {
+            const errors = [];
+            const qItems = document.querySelectorAll('#questions-container .accordion-item');
+
+            if (qItems.length === 0) {
+                errors.push('Add at least one question.');
+            }
+
+            qItems.forEach((qEl, qIdx) => {
+                const qNumber = qIdx + 1;
+                const qText = qEl.querySelector('[data-field="question-text"]')?.value?.trim();
+                if (!qText) {
+                    errors.push(`Question ${qNumber}: Text is required.`);
+                }
+
+                const choices = qEl.querySelectorAll('.choice-item');
+                if (choices.length < 2) {
+                    errors.push(`Question ${qNumber}: At least 2 choices are required.`);
+                }
+
+                const hasCorrect = qEl.querySelector('[data-field="choice-correct"]:checked') != null;
+                if (!hasCorrect) {
+                    errors.push(`Question ${qNumber}: Select a correct answer.`);
+                }
+            });
+
+            const errBox = document.getElementById('client-errors');
+            if (errors.length > 0) {
+                errBox.classList.remove('d-none');
+                errBox.innerHTML = errors.map(e => `<div>• ${e}</div>`).join('');
+                return false;
+            } else {
+                errBox.classList.add('d-none');
+                errBox.innerHTML = '';
+                return true;
+            }
+        }
+
+        // ============ Hook form submit ============
+
+        document.getElementById('exam-form').addEventListener('submit', function (e) {
+            // قبل الإرسال: ظبط الأسماء (reindex) + تحقق من الفاليديشن
+            reindexQuestions();
+            if (!validateBeforeSubmit()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+
+
+                function validateBeforeSubmit() {
+            const errors = [];
+            const qItems = document.querySelectorAll('#questions-container .accordion-item');
+
+            if (qItems.length === 0) {
+                errors.push('⚠️ Add at least one question.');
+            }
+
+            qItems.forEach((qEl, qIdx) => {
+                const qNumber = qIdx + 1;
+                const qText = qEl.querySelector('[data-field="question-text"]')?.value?.trim();
+                if (!qText) {
+                    errors.push(`⚠️ Question ${qNumber}: Text is required.`);
+                }
+
+                const choices = qEl.querySelectorAll('.choice-item');
+                if (choices.length < 2) {
+                    errors.push(`⚠️ Question ${qNumber}: At least 2 choices are required.`);
+                }
+
+                const hasCorrect = qEl.querySelector('[data-field="choice-correct"]:checked') != null;
+                if (!hasCorrect) {
+                    errors.push(`⚠️ Question ${qNumber}: Select a correct answer.`);
+                }
+            });
+
+            const errBox = document.getElementById('client-errors');
+            if (errors.length > 0) {
+                errBox.classList.remove('d-none');
+                errBox.innerHTML = errors.map(e => `<div>${e}</div>`).join('');
+                return false;
+            } else {
+                errBox.classList.add('d-none');
+                errBox.innerHTML = '';
+                return true;
+            }
+        }
+
+    </script>
+
+    <style>
+        /* تحسينات بسيطة */
+        .accordion-button .question-title-index {
+            min-width: 1.5rem;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .choice-item {
+            transition: background-color .2s ease, border-color .2s ease;
+        }
+
+            .choice-item.border-success {
+                border-width: 2px !important;
+            }
+    </style>
+}

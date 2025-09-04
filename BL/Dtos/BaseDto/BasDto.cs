@@ -9,7 +9,7 @@ namespace BL.Dtos.BaseDto
     public  class BasDto
     {
         public Guid Id { get; set; }
-        public DateTime? CreatedDate { get; set; }
+        public DateTime CreatedDate { get; set; }
         public int CurrentState { get; set; }
 
     }

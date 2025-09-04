@@ -26,9 +26,7 @@ namespace BL.Services
         // جلب الاختيارات الخاصة بسؤال معين
         public async Task<List<TbChoiceDto>> GetByQuestionId(Guid questionId)
         {
-            //var choices = await _repo.GetAll().Where(c => c.QuestionId == questionId).ToList();
-            //return _mapper.Map<List<TbChoice>, List<TbChoiceDto>>(choices);
-            // أولاً ننتظر نتيجة GetAllAsync
+            
             var allChoices = await _repo.GetAll();
 
             // بعد ما نحصل على القائمة، نفلتر حسب QuestionId

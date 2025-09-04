@@ -1,0 +1,231 @@
+﻿@model BL.Dtos.ExamWithQuestionsViewModel
+
+@{
+    ViewData["Title"] = "Edit Exam";
+}
+
+<h2 class="mb-4">Edit Exam</h2>
+
+
+<form id="exam-form" asp-action="Edit" asp-controller="CreateExam" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="form-group mb-3">
+        <label asp-for="Title" class="form-label"></label>
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <h4 class="mt-4 mb-3">Questions</h4>
+    <div class="accordion" id="questions-container">
+        @foreach (var question in Model.Questions.Select((q, qIndex) => new { q, qIndex }))
+        {
+            <div class="accordion-item mb-3">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@question.qIndex">
+                        Question @(question.qIndex + 1)
+                    </button>
+                </h2>
+                <div id="collapse-@question.qIndex" class="accordion-collapse collapse">
+                    <div class="accordion-body">
+                        <input type="hidden" name="Questions[@question.qIndex].Id" value="@question.q.Id" />
+
+                        <div class="form-group mb-2">
+                            <label>Question Text</label>
+                            <input type="text" class="form-control" data-field="question-text"
+                                   name="Questions[@question.qIndex].Text"
+                                   value="@question.q.Text" required />
+                        </div>
+
+                        <h6>Choices</h6>
+                        <div data-field="choices-container">
+                            @foreach (var choice in question.q.Choices.Select((c, cIndex) => new { c, cIndex }))
+                            {
+                                <div class="choice-item card card-body border-light shadow-sm mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <input type="hidden" name="Questions[@question.qIndex].Choices[@choice.cIndex].Id" value="@choice.c.Id" />
+                                        <input type="hidden" name="Questions[@question.qIndex].Choices[@choice.cIndex].IsCorrect" value="@(choice.c.IsCorrect ? "true" : "false")" data-field="is-correct-hidden" />
+
+                                        <input type="text" class="form-control me-2"
+                                               name="Questions[@question.qIndex].Choices[@choice.cIndex].Text"
+                                               value="@choice.c.Text" placeholder="Choice text" required />
+
+                                        <div class="form-check me-2">
+                                            <input class="form-check-input" type="radio"
+                                                   name="question_@question.qIndex"
+                                                   data-field="choice-correct"
+                                                   @(choice.c.IsCorrect ? "checked" : "")
+                                                   onchange="onCorrectChanged(this)">
+                                            <label class="form-check-label text-success">Correct</label>
+                                        </div>
+
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeChoice(this)">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-2">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="addChoice(this)">
+                                ➕ Add Choice
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">
+                                🗑️ Remove Question
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <button type="button" class="btn btn-sm btn-primary mb-3" onclick="addQuestion()">➕ Add Question</button>
+    <button type="submit" class="btn btn-success">💾 Save Changes</button>
+    <a asp-action="List" class="btn btn-secondary">⬅ Back</a>
+</form>
+
+<div id="client-errors" class="alert alert-danger d-none"></div>
+
+@section Scripts {
+<script>
+let questionIndex = @Model.Questions.Count;
+
+// ===== Add/Remove Questions =====
+function addQuestion() {
+    const html = `<div class="accordion-item mb-3">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse">
+                Question ${questionIndex + 1}
+            </button>
+        </h2>
+        <div class="accordion-collapse collapse">
+            <div class="accordion-body">
+                <input type="hidden" name="Questions[${questionIndex}].Id" value="00000000-0000-0000-0000-000000000000" />
+                <div class="form-group mb-2">
+                    <input type="text" class="form-control" data-field="question-text"
+                           name="Questions[${questionIndex}].Text" placeholder="Question text" required />
+                </div>
+                <div data-field="choices-container"></div>
+                <div class="d-flex justify-content-between mt-2">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="addChoice(this)">➕ Add Choice</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">🗑️ Remove Question</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    document.getElementById("questions-container").insertAdjacentHTML("beforeend", html);
+    questionIndex++;
+    reindexQuestions();
+}
+
+function removeQuestion(btn) {
+    const item = btn.closest('.accordion-item');
+    if(item){
+        item.remove();
+        reindexQuestions();
+    }
+}
+
+// ===== Add/Remove Choices =====
+function addChoice(btn) {
+    const qEl = btn.closest('.accordion-item');
+    const container = qEl.querySelector('[data-field="choices-container"]');
+    const choiceIndex = container.querySelectorAll('.choice-item').length;
+    const qIndex = Array.from(document.querySelectorAll('#questions-container .accordion-item')).indexOf(qEl);
+
+    const html = `<div class="choice-item card card-body border-light shadow-sm mb-2">
+        <div class="d-flex align-items-center">
+            <input type="hidden" name="Questions[${qIndex}].Choices[${choiceIndex}].Id" value="00000000-0000-0000-0000-000000000000" />
+            <input type="hidden" name="Questions[${qIndex}].Choices[${choiceIndex}].IsCorrect" value="false" data-field="is-correct-hidden" />
+            <input type="text" class="form-control me-2" name="Questions[${qIndex}].Choices[${choiceIndex}].Text" placeholder="Choice text" required />
+            <div class="form-check me-2">
+                <input class="form-check-input" type="radio" name="question_${qIndex}" data-field="choice-correct" onchange="onCorrectChanged(this)">
+                <label class="form-check-label text-success">Correct</label>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeChoice(this)">
+                <i class="bi bi-x-circle"></i>
+            </button>
+        </div>
+    </div>`;
+    container.insertAdjacentHTML("beforeend", html);
+}
+
+function removeChoice(btn) {
+    const item = btn.closest('.choice-item');
+    if(item) item.remove();
+    reindexQuestions();
+}
+
+// ===== Highlight Correct Answer =====
+function onCorrectChanged(radio){
+    const qEl = radio.closest('.accordion-item');
+    qEl.querySelectorAll('.choice-item').forEach(ci => ci.querySelector('[data-field="is-correct-hidden"]').value="false");
+    const hidden = document.createElement('input');
+    hidden.type="hidden";
+    hidden.dataset.field = "is-correct-hidden";
+    hidden.name = radio.name.replace(/^question_/, "Questions[") + "].Choices[" + radio.value + "].IsCorrect";
+    hidden.value="true";
+    qEl.querySelector('[data-field="choices-container"]').appendChild(hidden);
+
+    qEl.querySelectorAll('.choice-item').forEach(ci => ci.classList.remove('border-success','bg-light'));
+    const selected = radio.closest('.choice-item');
+    if(selected) selected.classList.add('border-success','bg-light');
+}
+
+// ===== Reindex Questions & Choices =====
+function reindexQuestions(){
+    const qItems = document.querySelectorAll('#questions-container .accordion-item');
+    qItems.forEach((qEl, qIdx)=>{
+        const btn = qEl.querySelector('.accordion-button');
+        if(btn) btn.textContent = `Question ${qIdx + 1}`;
+        const qText = qEl.querySelector('[data-field="question-text"]');
+        if(qText) qText.name = `Questions[${qIdx}].Text`;
+
+        const choices = qEl.querySelectorAll('.choice-item');
+        choices.forEach((cEl,cIdx)=>{
+            const input = cEl.querySelector('[data-field="choice-text"]');
+            if(input) input.name = `Questions[${qIdx}].Choices[${cIdx}].Text`;
+            const hidden = cEl.querySelector('[data-field="is-correct-hidden"]');
+            if(hidden) hidden.name = `Questions[${qIdx}].Choices[${cIdx}].IsCorrect`;
+            const radio = cEl.querySelector('[data-field="choice-correct"]');
+            if(radio){
+                radio.name = `question_${qIdx}`;
+                radio.value = cIdx;
+            }
+        });
+    });
+}
+
+// ===== Client-side validation =====
+document.getElementById('exam-form').addEventListener('submit',function(e){
+    let errors=[];
+    const qItems=document.querySelectorAll('#questions-container .accordion-item');
+    if(qItems.length===0) errors.push('Add at least one question.');
+    qItems.forEach((qEl,qIdx)=>{
+        const qText=qEl.querySelector('[data-field="question-text"]')?.value?.trim();
+        if(!qText) errors.push(`Question ${qIdx+1}: Text is required.`);
+        const choices=qEl.querySelectorAll('.choice-item');
+        if(choices.length<2) errors.push(`Question ${qIdx+1}: At least 2 choices required.`);
+        const hasCorrect=qEl.querySelector('[data-field="choice-correct"]:checked')!=null;
+        if(!hasCorrect) errors.push(`Question ${qIdx+1}: Select a correct answer.`);
+    });
+    const errBox=document.getElementById('client-errors');
+    if(errors.length>0){
+        e.preventDefault();
+        errBox.classList.remove('d-none');
+        errBox.innerHTML=errors.map(e=>`<div>${e}</div>`).join('');
+        window.scrollTo({top:0,behavior:'smooth'});
+    } else {
+        errBox.classList.add('d-none'); errBox.innerHTML='';
+    }
+});
+</script>
+}

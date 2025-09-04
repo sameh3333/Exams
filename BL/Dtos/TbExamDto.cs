@@ -10,6 +10,7 @@ namespace BL.Dtos
 {
     public class TbExamDto : BasDto
     {
+        public bool IsActive { get; set; } = true; // ✅ جديد لتعطيل الامتحان
 
 
         [Required(ErrorMessage = "Title is required.")]

@@ -1,9 +1,10 @@
+﻿using BL.Contracts;
+using BL.Services;
+using Domin;
 using Exams.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
-using BL.Contracts;
-using BL.Services;
-using Microsoft.AspNetCore.Authorization;
 using System.Threading.Tasks;
 namespace Exams.Controllers
 {
@@ -23,7 +24,9 @@ namespace Exams.Controllers
         }
         public async Task<IActionResult> List()
         {
-            var getdata =await _eaxme.GetAll();
+            var getdata = (await _eaxme.GetAll())
+                .Where(e => e.IsActive) // ✅ فقط الامتحانات المفعلة
+                .ToList();
             return View(getdata);
         }
       
