@@ -25,6 +25,33 @@ namespace BL.Maping
             // تحديث بيانات المستخدم
             CreateMap<UpdateUserDto, ApplicationUser>().ReverseMap();
 
+
+
+            // Exam
+            CreateMap<ExamWithQuestionsViewModel, TbExam>().ReverseMap();
+            CreateMap<TbExam, ExamWithQuestionsViewModel>().ReverseMap();
+
+            // Question
+           
+
+            // Choice
+
+            // Question
+            CreateMap<TbQuestionDto, TbQuestion>().ReverseMap();
+            CreateMap<QuestionViewModel, TbQuestionDto>()
+                .ForMember(dest => dest.QuestionText, opt => opt.MapFrom(src => src.Text))
+                .ReverseMap()
+                .ForMember(dest => dest.Text, opt => opt.MapFrom(src => src.QuestionText));
+
+            // Choice
+            CreateMap<TbChoiceDto, TbChoice>().ReverseMap();
+
+            CreateMap<ChoiceViewModel, TbChoiceDto>()
+                .ForMember(dest => dest.ChoiceText, opt => opt.MapFrom(src => src.Text))
+                .ReverseMap()
+                .ForMember(dest => dest.Text, opt => opt.MapFrom(src => src.ChoiceText));
+
+
         }
     }
 }

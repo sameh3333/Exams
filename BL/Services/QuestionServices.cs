@@ -22,7 +22,7 @@ namespace BL.Services
             : base(repo, mapper, userservices)
         {
             _repo = repo;
-            _mapper = mapper;
+            _mapper = mapper;   
         }
 
 

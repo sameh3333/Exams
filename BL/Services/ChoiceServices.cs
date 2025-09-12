@@ -52,54 +52,7 @@ namespace BL.Services
         }
 
 
-        // ✅ هنا Implementation لـ SaveChoice
-        //public async Task<bool> SaveChoic(TbChoiceDto choiceDto)
-        //{
-        //    try
-        //    {
-
-
-        //        if (choiceDto.IsCorrect)
-        //        {
-        //            var otherChoices =  await GetByQuestionId(choiceDto.QuestionId)
-        //                                .Where(c => c.Id != choiceDto.Id)
-        //                                .ToList();
-
-        //            foreach (var choice in otherChoices)
-        //            {
-        //                if (choice.IsCorrect)
-        //                {
-        //                    choice.IsCorrect = false;
-        //                    Update(choice);
-        //                }
-        //            }
-        //        }
-        //        if (choiceDto.Id == Guid.Empty)
-        //        {
-        //            // إضافة اختيار جديد
-        //            return  await  Add(choiceDto);
-        //        }
-        //        else
-        //        {
-
-        //            // تحديث اختيار موجود
-        //            var existingChoice = await GetById(choiceDto.Id);
-        //            if (existingChoice == null)
-        //                return false;
-
-        //            existingChoice.ChoiceText = choiceDto.ChoiceText;
-        //            existingChoice.IsCorrect = choiceDto.IsCorrect;
-
-        //            return await Update(existingChoice);
-
-        //    }
-        //    }
-        //    catch
-        //    {
-        //        return false;
-        //    }
-
-        //}
+   
 
         public async Task<bool> SaveChoic(TbChoiceDto choiceDto)
         {

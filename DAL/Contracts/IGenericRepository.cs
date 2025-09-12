@@ -14,7 +14,7 @@ namespace Exams.Contracts
         Task<bool> Add(T entity);
         Task<bool> Update(T entity);
         Task<bool> Delete(T entity);
-        Task<bool> ChangeStatus(Guid id, int status = 1);  // أو Domines.Guid
+        Task<bool> ChangeStatus(Guid id,Guid userId,  int status = 1);  // أو Domines.Guid
 
 
         

@@ -6,7 +6,6 @@
 
 <h2 class="mb-4">Edit Exam</h2>
 
-
 <form id="exam-form" asp-action="Edit" asp-controller="CreateExam" method="post">
     <input type="hidden" asp-for="Id" />
 
@@ -27,12 +26,12 @@
         @foreach (var question in Model.Questions.Select((q, qIndex) => new { q, qIndex }))
         {
             <div class="accordion-item mb-3">
-                <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@question.qIndex">
-                        Question @(question.qIndex + 1)
+                <h2 class="accordion-header" id="heading-@question.qIndex">
+                    <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@question.qIndex">
+                        Question <span class="question-title-index">@(question.qIndex + 1)</span>
                     </button>
                 </h2>
-                <div id="collapse-@question.qIndex" class="accordion-collapse collapse">
+                <div id="collapse-@question.qIndex" class="accordion-collapse collapse" aria-labelledby="heading-@question.qIndex">
                     <div class="accordion-body">
                         <input type="hidden" name="Questions[@question.qIndex].Id" value="@question.q.Id" />
 
@@ -52,7 +51,7 @@
                                         <input type="hidden" name="Questions[@question.qIndex].Choices[@choice.cIndex].Id" value="@choice.c.Id" />
                                         <input type="hidden" name="Questions[@question.qIndex].Choices[@choice.cIndex].IsCorrect" value="@(choice.c.IsCorrect ? "true" : "false")" data-field="is-correct-hidden" />
 
-                                        <input type="text" class="form-control me-2"
+                                        <input type="text" class="form-control me-2" data-field="choice-text"
                                                name="Questions[@question.qIndex].Choices[@choice.cIndex].Text"
                                                value="@choice.c.Text" placeholder="Choice text" required />
 
@@ -65,9 +64,7 @@
                                             <label class="form-check-label text-success">Correct</label>
                                         </div>
 
-                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeChoice(this)">
-                                            <i class="bi bi-x-circle"></i>
-                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeChoice(this)">🗑️</button>
                                     </div>
                                 </div>
                             }
@@ -77,9 +74,21 @@
                             <button type="button" class="btn btn-sm btn-secondary" onclick="addChoice(this)">
                                 ➕ Add Choice
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">
+                         @*    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">
                                 🗑️ Remove Question
-                            </button>
+                            </button> *@
+                            <!-- زر حذف السؤال القديم من السيرفر -->
+                            <form asp-action="DeleteQuestion" asp-controller="CreateExam" method="post" style="display:inline;">
+                                <input type="hidden" name="id" value="@question.q.Id" />
+                                <input type="hidden" name="examId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('هل أنت متأكد من حذف السؤال؟');">
+                                    🗑️ Remove Question
+                                </button>
+                            </form>
+
+             
+
                         </div>
                     </div>
                 </div>
@@ -96,136 +105,176 @@
 
 @section Scripts {
 <script>
-let questionIndex = @Model.Questions.Count;
+let questionCounter = @Model.Questions.Count();
 
-// ===== Add/Remove Questions =====
+// ===== Reindex Questions =====
+function reindexQuestions() {
+    const qItems = document.querySelectorAll('#questions-container .accordion-item');
+
+    qItems.forEach((qEl, qIdx) => {
+        if (!qEl) return;
+
+        const btn = qEl.querySelector('.accordion-button');
+        const collapse = qEl.querySelector('.accordion-collapse');
+        const qTextInput = qEl.querySelector('[data-field="question-text"]');
+        const choicesContainer = qEl.querySelector('[data-field="choices-container"]');
+
+        if (btn && collapse) {
+            btn.setAttribute('data-bs-target', `#collapse-${qIdx}`);
+            collapse.id = `collapse-${qIdx}`;
+            const titleIndex = btn.querySelector('.question-title-index');
+            if (titleIndex) titleIndex.textContent = (qIdx + 1);
+        }
+
+        if (qTextInput) qTextInput.setAttribute('name', `Questions[${qIdx}].Text`);
+        if (!choicesContainer) return;
+
+        // إزالة hidden السابق
+        choicesContainer.querySelectorAll('input[data-field="is-correct-hidden"]').forEach(h => h.remove());
+
+        const choiceItems = qEl.querySelectorAll('.choice-item');
+        let checkedChoiceIndex = -1;
+
+        choiceItems.forEach((cEl, cIdx) => {
+            if (!cEl) return;
+            const cText = cEl.querySelector('[data-field="choice-text"]');
+            const cRadio = cEl.querySelector('[data-field="choice-correct"]');
+            if (cText) cText.setAttribute('name', `Questions[${qIdx}].Choices[${cIdx}].Text`);
+            if (cRadio) {
+                cRadio.setAttribute('name', `q${qIdx}_correct`);
+                cRadio.value = cIdx;
+                if (cRadio.checked) checkedChoiceIndex = cIdx;
+            }
+        });
+
+        if (checkedChoiceIndex >= 0) {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.dataset.field = 'is-correct-hidden';
+            hidden.name = `Questions[${qIdx}].Choices[${checkedChoiceIndex}].IsCorrect`;
+            hidden.value = 'true';
+            choicesContainer.appendChild(hidden);
+        }
+    });
+}
+
+// ===== Add Question =====
 function addQuestion() {
-    const html = `<div class="accordion-item mb-3">
-        <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse">
-                Question ${questionIndex + 1}
-            </button>
-        </h2>
-        <div class="accordion-collapse collapse">
-            <div class="accordion-body">
-                <input type="hidden" name="Questions[${questionIndex}].Id" value="00000000-0000-0000-0000-000000000000" />
-                <div class="form-group mb-2">
-                    <input type="text" class="form-control" data-field="question-text"
-                           name="Questions[${questionIndex}].Text" placeholder="Question text" required />
-                </div>
-                <div data-field="choices-container"></div>
-                <div class="d-flex justify-content-between mt-2">
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="addChoice(this)">➕ Add Choice</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">🗑️ Remove Question</button>
+    const qIdx = questionCounter++;
+    const html = `
+        <div class="accordion-item mb-3">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse">
+                    Question <span class="question-title-index">${qIdx + 1}</span>
+                </button>
+            </h2>
+            <div class="accordion-collapse collapse">
+                <div class="accordion-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" data-field="question-text" placeholder="Enter question text" required />
+                    </div>
+                    <div data-field="choices-container"></div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="addChoice(this)">➕ Add Choice</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">🗑️ Remove Question</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>`;
-    document.getElementById("questions-container").insertAdjacentHTML("beforeend", html);
-    questionIndex++;
+        </div>`;
+    document.getElementById("questions-container")?.insertAdjacentHTML("beforeend", html);
+
+    const lastItem = document.querySelector('#questions-container .accordion-item:last-child');
+    const container = lastItem?.querySelector('[data-field="choices-container"]');
+    if (container) for (let i = 0; i < 2; i++) addChoice(container, true);
+
     reindexQuestions();
 }
 
+// ===== Add Choice =====
+function addChoice(btnOrContainer, isDefault = false) {
+    const container = isDefault
+        ? btnOrContainer
+        : btnOrContainer.closest('.accordion-item')?.querySelector('[data-field="choices-container"]');
+    if (!container) return;
+
+    const html = `
+        <div class="choice-item card card-body border-light shadow-sm mb-2">
+            <div class="d-flex align-items-center">
+                <input type="text" class="form-control me-2" data-field="choice-text" placeholder="Choice text" required />
+                <div class="form-check me-2">
+                    <input class="form-check-input" type="radio" data-field="choice-correct" onchange="onCorrectChanged(this)">
+                    <label class="form-check-label text-success">Correct</label>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeChoice(this)">🗑️</button>
+            </div>
+        </div>`;
+    container.insertAdjacentHTML("beforeend", html);
+    reindexQuestions();
+}
+
+// ===== Remove Question =====
 function removeQuestion(btn) {
-    const item = btn.closest('.accordion-item');
-    if(item){
-        item.remove();
-        reindexQuestions();
+    btn.closest('.accordion-item')?.remove();
+    reindexQuestions();
+}
+
+// ===== Remove Choice =====
+function removeChoice(btn) {
+    btn.closest('.choice-item')?.remove();
+    reindexQuestions();
+}
+
+// ===== Correct Answer Highlight =====
+function onCorrectChanged(radio) {
+    const qEl = radio.closest('.accordion-item');
+    if (!qEl) return;
+    const qIndex = Array.from(document.querySelectorAll('#questions-container .accordion-item')).indexOf(qEl);
+    const choiceItems = qEl.querySelectorAll('.choice-item');
+    choiceItems.forEach(ci => ci.classList.remove('border-success', 'bg-light'));
+    const checked = qEl.querySelector('[data-field="choice-correct"]:checked');
+    if (checked) checked.closest('.choice-item')?.classList.add('border-success', 'bg-light');
+    reindexQuestions();
+}
+
+// ===== Validation =====
+function validateBeforeSubmit() {
+    const errors = [];
+    const qItems = document.querySelectorAll('#questions-container .accordion-item');
+    if (qItems.length === 0) errors.push('⚠️ Add at least one question.');
+
+    qItems.forEach((qEl, qIdx) => {
+        const qNumber = qIdx + 1;
+        const qText = qEl.querySelector('[data-field="question-text"]')?.value?.trim();
+        if (!qText) errors.push(`⚠️ Question ${qNumber}: Text is required.`);
+        const choices = qEl.querySelectorAll('.choice-item');
+        if (choices.length < 2) errors.push(`⚠️ Question ${qNumber}: At least 2 choices are required.`);
+        if (!qEl.querySelector('[data-field="choice-correct"]:checked')) errors.push(`⚠️ Question ${qNumber}: Select a correct answer.`);
+    });
+
+    const errBox = document.getElementById('client-errors');
+    if (errors.length > 0) {
+        errBox?.classList.remove('d-none');
+        if (errBox) errBox.innerHTML = errors.map(e => `<div>${e}</div>`).join('');
+        return false;
+    } else {
+        errBox?.classList.add('d-none');
+        if (errBox) errBox.innerHTML = '';
+        return true;
     }
 }
 
-// ===== Add/Remove Choices =====
-function addChoice(btn) {
-    const qEl = btn.closest('.accordion-item');
-    const container = qEl.querySelector('[data-field="choices-container"]');
-    const choiceIndex = container.querySelectorAll('.choice-item').length;
-    const qIndex = Array.from(document.querySelectorAll('#questions-container .accordion-item')).indexOf(qEl);
-
-    const html = `<div class="choice-item card card-body border-light shadow-sm mb-2">
-        <div class="d-flex align-items-center">
-            <input type="hidden" name="Questions[${qIndex}].Choices[${choiceIndex}].Id" value="00000000-0000-0000-0000-000000000000" />
-            <input type="hidden" name="Questions[${qIndex}].Choices[${choiceIndex}].IsCorrect" value="false" data-field="is-correct-hidden" />
-            <input type="text" class="form-control me-2" name="Questions[${qIndex}].Choices[${choiceIndex}].Text" placeholder="Choice text" required />
-            <div class="form-check me-2">
-                <input class="form-check-input" type="radio" name="question_${qIndex}" data-field="choice-correct" onchange="onCorrectChanged(this)">
-                <label class="form-check-label text-success">Correct</label>
-            </div>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeChoice(this)">
-                <i class="bi bi-x-circle"></i>
-            </button>
-        </div>
-    </div>`;
-    container.insertAdjacentHTML("beforeend", html);
-}
-
-function removeChoice(btn) {
-    const item = btn.closest('.choice-item');
-    if(item) item.remove();
+document.getElementById('exam-form')?.addEventListener('submit', function(e) {
     reindexQuestions();
-}
-
-// ===== Highlight Correct Answer =====
-function onCorrectChanged(radio){
-    const qEl = radio.closest('.accordion-item');
-    qEl.querySelectorAll('.choice-item').forEach(ci => ci.querySelector('[data-field="is-correct-hidden"]').value="false");
-    const hidden = document.createElement('input');
-    hidden.type="hidden";
-    hidden.dataset.field = "is-correct-hidden";
-    hidden.name = radio.name.replace(/^question_/, "Questions[") + "].Choices[" + radio.value + "].IsCorrect";
-    hidden.value="true";
-    qEl.querySelector('[data-field="choices-container"]').appendChild(hidden);
-
-    qEl.querySelectorAll('.choice-item').forEach(ci => ci.classList.remove('border-success','bg-light'));
-    const selected = radio.closest('.choice-item');
-    if(selected) selected.classList.add('border-success','bg-light');
-}
-
-// ===== Reindex Questions & Choices =====
-function reindexQuestions(){
-    const qItems = document.querySelectorAll('#questions-container .accordion-item');
-    qItems.forEach((qEl, qIdx)=>{
-        const btn = qEl.querySelector('.accordion-button');
-        if(btn) btn.textContent = `Question ${qIdx + 1}`;
-        const qText = qEl.querySelector('[data-field="question-text"]');
-        if(qText) qText.name = `Questions[${qIdx}].Text`;
-
-        const choices = qEl.querySelectorAll('.choice-item');
-        choices.forEach((cEl,cIdx)=>{
-            const input = cEl.querySelector('[data-field="choice-text"]');
-            if(input) input.name = `Questions[${qIdx}].Choices[${cIdx}].Text`;
-            const hidden = cEl.querySelector('[data-field="is-correct-hidden"]');
-            if(hidden) hidden.name = `Questions[${qIdx}].Choices[${cIdx}].IsCorrect`;
-            const radio = cEl.querySelector('[data-field="choice-correct"]');
-            if(radio){
-                radio.name = `question_${qIdx}`;
-                radio.value = cIdx;
-            }
-        });
-    });
-}
-
-// ===== Client-side validation =====
-document.getElementById('exam-form').addEventListener('submit',function(e){
-    let errors=[];
-    const qItems=document.querySelectorAll('#questions-container .accordion-item');
-    if(qItems.length===0) errors.push('Add at least one question.');
-    qItems.forEach((qEl,qIdx)=>{
-        const qText=qEl.querySelector('[data-field="question-text"]')?.value?.trim();
-        if(!qText) errors.push(`Question ${qIdx+1}: Text is required.`);
-        const choices=qEl.querySelectorAll('.choice-item');
-        if(choices.length<2) errors.push(`Question ${qIdx+1}: At least 2 choices required.`);
-        const hasCorrect=qEl.querySelector('[data-field="choice-correct"]:checked')!=null;
-        if(!hasCorrect) errors.push(`Question ${qIdx+1}: Select a correct answer.`);
-    });
-    const errBox=document.getElementById('client-errors');
-    if(errors.length>0){
+    if (!validateBeforeSubmit()) {
         e.preventDefault();
-        errBox.classList.remove('d-none');
-        errBox.innerHTML=errors.map(e=>`<div>${e}</div>`).join('');
-        window.scrollTo({top:0,behavior:'smooth'});
-    } else {
-        errBox.classList.add('d-none'); errBox.innerHTML='';
+        e.stopPropagation();
     }
 });
 </script>
+
+<style>
+    .accordion-button .question-title-index { min-width: 1.5rem; display: inline-block; text-align: center; }
+    .choice-item { transition: background-color .2s ease, border-color .2s ease; }
+    .choice-item.border-success { border-width: 2px !important; }
+</style>
 }

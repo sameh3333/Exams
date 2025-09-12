@@ -7,7 +7,6 @@ using DAL.Contracts;
 
     using Exams.Contracts;
 using Exams.Models;
-using Exams.Repositorys;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;

@@ -6,7 +6,7 @@ using Exams.Contracts;
 using DAL.Context;
 using Domin;
 
-namespace Exams.Repositorys
+namespace DAL.Repositorys
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : BaseTable
     {
@@ -103,7 +103,7 @@ namespace Exams.Repositorys
             }
         }
         // تغيير حالة الكائن (على سبيل المثال تفعيل أو إلغاء تفعيل)
-        public async Task<bool> ChangeStatus(Guid id, int status = 1)
+        public async Task<bool> ChangeStatus(Guid id, Guid userId, int status = 1)
         {
             try
             {
@@ -111,7 +111,7 @@ namespace Exams.Repositorys
                 if (entity != null)
                 {
                     entity.CurrentState = status;
-                    entity.UpdatedBy = Guid.NewGuid();
+                    entity.UpdatedBy = userId;
                     entity.UpdatedDate = DateTime.Now;
                     _context.Entry(entity).State = EntityState.Modified;
                   await  _context.SaveChangesAsync();

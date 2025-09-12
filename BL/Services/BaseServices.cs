@@ -67,7 +67,7 @@ namespace BL.Services
         }
         public async Task<bool> ChangeStatus(Guid id, Guid userId, int status = 1)
         {
-            return await _redo.ChangeStatus(id, 0);
+            return await _redo.ChangeStatus(id, userId, status);
         }
 
 

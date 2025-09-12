@@ -2,7 +2,6 @@
 using DAL.Contracts;
 using Domin;
 using Exams.Contracts;
-using Exams.Repositorys;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using System;

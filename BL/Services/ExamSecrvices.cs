@@ -16,6 +16,7 @@ namespace BL.Services
         private readonly IMapper _mapper;
         private readonly IResult _resultRepo;
         private readonly IUnitOfWork _uow;
+        private readonly  IGenericRepository<TbExam> _redo;
         public ExamSecrvices(
          IGenericRepository<TbExam> redo,
        IQuestion questionRepo,
@@ -25,7 +26,6 @@ namespace BL.Services
             IResult resultRepo,
             IUnitOfWork uow
 
-
      ) : base(redo, mapper, userServices)
         {
             _uow=uow;   
@@ -33,214 +33,107 @@ namespace BL.Services
             _choiceRepo = choiceRepo;   
             _mapper = mapper;
             _resultRepo = resultRepo;
+            _redo = redo;
         }
+
+
+
+        
 
         public async Task<ExamWithQuestionsViewModel> GetExamWithQuestionsAsync(Guid examId)
         {
-            // ✅ هات الامتحان
+            // 1️⃣ جلب الامتحان من قاعدة البيانات
             var exam = await _uow.Repository<TbExam>().GetById(examId);
             if (exam == null) return null;
 
-            // ✅ هات الأسئلة الخاصة بالامتحان
-            var questions = (await _uow.Repository<TbQuestion>().GetAll())
-                .Where(q => q.ExamId == examId)
-                .ToList();
+            // 2️⃣ جلب جميع الأسئلة الخاصة بالامتحان
+            var questionDtos = await _questionRepo.GetByExamId(examId);
 
-            // ✅ هات الاختيارات الخاصة بالأسئلة دي فقط
-            var questionIds = questions.Select(q => q.Id).ToList();
-            var allChoices = (await _uow.Repository<TbChoice>().GetAll())
-                .Where(c => questionIds.Contains(c.QuestionId))
-                .ToList();
-
-            // ✅ رجّع الـ ViewModel كامل
-            var data = new ExamWithQuestionsViewModel
+            // 3️⃣ إنشاء الـ ViewModel للامتحان
+            var examVm = new ExamWithQuestionsViewModel
             {
                 Id = exam.Id,
-                Title = exam.Title,
-                Description = exam.Description,
-                Questions = questions.Select(q => new QuestionViewModel
-                {
-                    Id = q.Id,
-                    Text = q.QuestionText,
-                    Choices = allChoices
-                        .Where(c => c.QuestionId == q.Id)
-                        .Select(c => new ChoiceViewModel
-                        {
-                            Id = c.Id,
-                            Text = c.ChoiceText,
-                            IsCorrect = c.IsCorrect
-                        }).ToList()
-                }).ToList()
+                Title = exam.Title ?? string.Empty,
+                Description = exam.Description ?? string.Empty,
+                Questions = new List<QuestionViewModel>(),
+                IsActive = exam.IsActive
             };
 
-            return data;
+            // 4️⃣ جلب الاختيارات لكل سؤال
+            foreach (var q in questionDtos)
+            {
+                var choiceDtos = await _choiceRepo.GetByQuestionId(q.Id);
+
+                var questionVm = new QuestionViewModel
+                {
+                    Id = q.Id,
+                    Text = q.QuestionText ?? string.Empty,
+                    Choices = choiceDtos.Select(c => new ChoiceViewModel
+                    {
+                        Id = c.Id,
+                        Text = c.ChoiceText ?? string.Empty,
+                        IsCorrect = c.IsCorrect,
+                        IsActive = c.IsActive
+                    }).ToList(),
+                    IsActive = q.IsActive
+                };
+
+                examVm.Questions.Add(questionVm);
+            }
+
+            return examVm;
         }
 
         public async Task ToggleActive(Guid examId)
         {
-            var exam = await _uow.Repository<TbExam>().GetById(examId);
+            var exam = await _redo.GetById(examId);
             if (exam == null) throw new Exception("Exam not found.");
 
             exam.IsActive = !exam.IsActive; // ✅ تبديل الحالة
-            await _uow.Repository<TbExam>().Update(exam);
+            await _redo.Update(exam);
             await _uow.CommitAsync();
         }
 
-
         public async Task<bool> Disable(Guid examId)
         {
-            await _uow.BeginTransactionAsync();
-            try
+            var exam = await _uow.Repository<TbExam>().GetById(examId);
+            if (exam == null) return false;
+
+            // عطّل الامتحان
+            exam.IsActive = false;
+            await _uow.Repository<TbExam>().Update(exam);
+
+            // هات الأسئلة
+            var questions = await _questionRepo.GetByExamId(examId);
+
+            foreach (var q in questions)
             {
-                var exam = await _uow.Repository<TbExam>().GetById(examId);
-                if (exam == null)
-                    throw new Exception("Exam not found.");
-
-                exam.IsActive = false; // تعطيل الامتحان
-                await _uow.Repository<TbExam>().Update(exam);
-
-                var questions = (await _uow.Repository<TbQuestion>().GetAll())
-                                .Where(q => q.ExamId == examId)
-                                .ToList();
-
-                var allChoices = await _uow.Repository<TbChoice>().GetAll();
-
-                foreach (var q in questions)
+                var questionEntity = await _uow.Repository<TbQuestion>().GetById(q.Id);
+                if (questionEntity != null)
                 {
-                    q.IsActive = false; // تعطيل السؤال
-                    await _uow.Repository<TbQuestion>().Update(q);
-
-                    var choices = allChoices.Where(c => c.QuestionId == q.Id).ToList();
-                    foreach (var choice in choices)
-                    {
-                        choice.IsActive = false; // تعطيل الاختيار
-                        await _uow.Repository<TbChoice>().Update(choice);
-                    }
+                    questionEntity.IsActive = false;
+                    await _uow.Repository<TbQuestion>().Update(questionEntity);
                 }
 
-                await _uow.CommitAsync();
-                return true;
+                // هات الاختيارات
+                var choices = await _choiceRepo.GetByQuestionId(q.Id);
+                foreach (var c in choices)
+                {
+                    var choiceEntity = await _uow.Repository<TbChoice>().GetById(c.Id);
+                    if (choiceEntity != null)
+                    {
+                        choiceEntity.IsActive = false;
+                        await _uow.Repository<TbChoice>().Update(choiceEntity);
+                    }
+                }
             }
-            catch
-            {
-                await _uow.RollbackAsync();
-                throw;
-            }
+
+            await _uow.CommitAsync();
+            return true;
         }
 
 
-        public async Task<bool> Edit(Guid examId, ExamWithQuestionsViewModel model)
-        {
-            if (model == null)
-                throw new ArgumentException("Invalid data to update exam.");
 
-            await _uow.BeginTransactionAsync();
-            try
-            {
-                // ✅ Update exam
-                var existingExam = await _uow.Repository<TbExam>().GetById(examId);
-                if (existingExam == null)
-                    throw new Exception("Exam not found.");
-
-                existingExam.Title = model.Title;
-                existingExam.Description = model.Description;
-                existingExam.UpdatedDate = DateTime.Now;
-
-                await _uow.Repository<TbExam>().Update(existingExam);
-
-                // ✅ Get all existing questions + choices
-                var existingQuestions = (await _uow.Repository<TbQuestion>().GetAll())
-                    .Where(q => q.ExamId == examId)
-                    .ToList();
-
-                var existingChoices = await _uow.Repository<TbChoice>().GetAll();
-
-                // ✅ Loop over incoming questions
-                foreach (var questionVm in model.Questions)
-                {
-                    TbQuestion question = null;
-
-                    if (questionVm.Id.HasValue)
-                    {
-                        question = existingQuestions.FirstOrDefault(q => q.Id == questionVm.Id.Value);
-                    }
-
-                    if (question != null)
-                    {
-                        // Update
-                        question.QuestionText = questionVm.Text;
-                        question.UpdatedDate = DateTime.Now;
-                        await _uow.Repository<TbQuestion>().Update(question);
-
-                        // Update choices
-                        foreach (var choiceVm in questionVm.Choices)
-                        {
-                            var choice = choiceVm.Id.HasValue
-                                ? existingChoices.FirstOrDefault(c => c.Id == choiceVm.Id.Value)
-                                : null;
-
-                            if (choice != null)
-                            {
-                                choice.ChoiceText = choiceVm.Text;
-                                choice.IsCorrect = choiceVm.IsCorrect;
-                                choice.UpdatedDate = DateTime.Now;
-                                await _uow.Repository<TbChoice>().Update(choice);
-                            }
-                            else
-                            {
-                                var newChoice = new TbChoice
-                                {
-                                    Id = Guid.NewGuid(),
-                                    QuestionId = question.Id,
-                                    ChoiceText = choiceVm.Text,
-                                    IsCorrect = choiceVm.IsCorrect,
-                                    CreatedDate = DateTime.Now,
-                                    CurrentState = 1
-                                };
-                                await _uow.Repository<TbChoice>().Add(newChoice);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Add new question
-                        var newQuestion = new TbQuestion
-                        {
-                            Id = Guid.NewGuid(),
-                            ExamId = examId,
-                            QuestionText = questionVm.Text,
-                            CreatedDate = DateTime.Now,
-                            CurrentState = 1
-                        };
-                        await _uow.Repository<TbQuestion>().Add(newQuestion);
-
-                        foreach (var choiceVm in questionVm.Choices)
-                        {
-                            var newChoice = new TbChoice
-                            {
-                                Id = Guid.NewGuid(),
-                                QuestionId = newQuestion.Id,
-                                ChoiceText = choiceVm.Text,
-                                IsCorrect = choiceVm.IsCorrect,
-                                CreatedDate = DateTime.Now,
-                                CurrentState = 1
-                            };
-                            await _uow.Repository<TbChoice>().Add(newChoice);
-                        }
-                    }
-                }
-
-                await _uow.CommitAsync();
-                return true;
-            }
-            catch
-            {
-                await _uow.RollbackAsync();
-                throw;
-            }
-        }
-
-        
         public async Task<Guid> Create(ExamWithQuestionsViewModel model)
         {
             if (model == null || model.Questions == null || !model.Questions.Any())
@@ -265,6 +158,126 @@ namespace BL.Services
 
             // نستدعي الميثود اللي بتحفظ
             return await AddExamWithQuestionsAndChoices(examDto, questionDtos);
+        }
+
+
+        
+
+        public async Task<ExamWithQuestionsViewModel> Edit(Guid examId, ExamWithQuestionsViewModel model)
+        {
+            if (model == null)
+                throw new ArgumentException("Invalid data to update exam.");
+
+            await _uow.BeginTransactionAsync();
+            try
+            {
+                // 1️⃣ تحديث بيانات الامتحان
+                var existingExam = await _uow.Repository<TbExam>().GetById(examId);
+                if (existingExam == null)
+                    throw new Exception("Exam not found.");
+
+                _mapper.Map(model, existingExam);
+                existingExam.UpdatedDate = DateTime.Now;
+                await _uow.Repository<TbExam>().Update(existingExam);
+
+                // 2️⃣ جلب كل الأسئلة والاختيارات من DB
+                var existingQuestions = await _questionRepo.GetByExamId(examId); // TbQuestionDto
+                var existingChoices = await _choiceRepo.GetAll();                 // TbChoiceDto
+
+                // 3️⃣ معالجة الأسئلة
+                foreach (var questionVm in model.Questions)
+                {
+                    TbQuestionDto questionDto;
+
+                    if (questionVm.Id.HasValue) // تحديث سؤال موجود
+                    {
+                        questionDto = existingQuestions.FirstOrDefault(q => q.Id == questionVm.Id.Value);
+                        if (questionDto == null)
+                            throw new Exception("Question not found for update.");
+
+                        _mapper.Map(questionVm, questionDto);
+                        await _questionRepo.Update(questionDto);
+                    }
+                    else // إضافة سؤال جديد
+                    {
+                        questionDto = _mapper.Map<TbQuestionDto>(questionVm);
+                        questionDto.Id = Guid.NewGuid();
+                        questionDto.ExamId = examId;
+                        questionDto.CreatedDate = DateTime.Now;
+                        questionDto.CurrentState = 1;
+
+                        await _questionRepo.Add(questionDto);
+                    }
+
+                    // 4️⃣ معالجة الاختيارات
+                    var incomingChoiceIds = questionVm.Choices
+                        .Where(c => c.Id.HasValue)
+                        .Select(c => c.Id.Value)
+                        .ToList();
+
+                    // حذف الاختيارات الغير موجودة
+                    var choicesToDelete = existingChoices
+                        .Where(c => c.QuestionId == questionDto.Id && !incomingChoiceIds.Contains(c.Id))
+                        .ToList();
+
+                    foreach (var choice in choicesToDelete)
+                        await _choiceRepo.ChangeStatus(choice.Id, Guid.Empty, 0); // Soft Delete
+
+                    // تحديث / إضافة الاختيارات
+                    foreach (var choiceVm in questionVm.Choices)
+                    {
+                        if (choiceVm.Id.HasValue) // تحديث
+                        {
+                            var choiceDto = existingChoices.FirstOrDefault(c => c.Id == choiceVm.Id.Value);
+                            if (choiceDto != null)
+                            {
+                                choiceDto.ChoiceText = choiceVm.Text; // مطابق لاسم Property في DTO
+                                choiceDto.IsCorrect = choiceVm.IsCorrect;
+                                await _choiceRepo.Update(choiceDto);
+                            }
+                        }
+                        else // إضافة جديد
+                        {
+                            var newChoiceDto = new TbChoiceDto
+                            {
+                                Id = Guid.NewGuid(),
+                                QuestionId = questionDto.Id,
+                                ChoiceText = choiceVm.Text,
+                                IsCorrect = choiceVm.IsCorrect,
+                                CreatedDate = DateTime.Now,
+                                CurrentState = 1
+                            };
+                            await _choiceRepo.Add(newChoiceDto);
+                        }
+                    }
+                }
+
+                await _uow.CommitAsync();
+
+                // 5️⃣ جلب الأسئلة والاختيارات بعد الحفظ للـ ViewModel
+                var updatedQuestions = await _questionRepo.GetByExamId(examId);
+                foreach (var q in updatedQuestions)
+                    q.Choices = (await _choiceRepo.GetByQuestionId(q.Id)).ToList();
+
+                model.Questions = updatedQuestions.Select(q => new QuestionViewModel
+                {
+                    Id = q.Id,
+                    Text = q.QuestionText, // مطابق لاسم Property في DTO
+                    Choices = q.Choices.Select(c => new ChoiceViewModel
+                    {
+                        Id = c.Id,
+                        Text = c.ChoiceText,  // مطابق لاسم Property في DTO
+                        IsCorrect = c.IsCorrect
+                    }).ToList()
+                }).ToList();
+
+                return model; // ترجع النموذج الكامل بعد الحفظ
+            }
+            catch
+            {
+                await _uow.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<Guid> AddExamWithQuestionsAndChoices( TbExamDto examDto,List<TbQuestionDto> questions)
@@ -317,6 +330,60 @@ namespace BL.Services
                 throw;
             }
         }
+
+
+
+        public async Task<bool> DeleteQuestionWithChoicesAsync(Guid questionId)
+        {
+            await _uow.BeginTransactionAsync();
+            try
+            {
+                // 1. جلب السؤال
+                var question = await _questionRepo.GetById(questionId);
+                if (question == null)
+                    return false;
+
+                // 2. جلب كل الاختيارات الخاصة بالسؤال
+                var choices = await _choiceRepo.GetByQuestionId(questionId);
+
+                // 3. حذف الاختيارات أولاً (Soft Delete)
+                foreach (var choice in choices)
+                {
+                    await _choiceRepo.ChangeStatus(choice.Id, Guid.Empty, 0); // Soft Delete
+                }
+
+                // 4. حذف السؤال نفسه (Soft Delete)
+                await _questionRepo.ChangeStatus(questionId, Guid.Empty, 0);
+
+                await _uow.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await _uow.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteChoiceAsync(Guid choiceId)
+        {
+            try
+            {
+                var choice = await _choiceRepo.GetById(choiceId);
+                if (choice == null)
+                    return false;
+
+                // مسح الاختيار (Soft Delete)
+                await _choiceRepo.ChangeStatus(choiceId, Guid.Empty, 0);
+                return true;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+
 
         public async Task<DAL.Dtos.ViewPageExam> StartExam(Guid examId)
         {
@@ -421,7 +488,13 @@ namespace BL.Services
 
             return score;
         }
+
+      
     }
 
 }
+
+
+
+
 

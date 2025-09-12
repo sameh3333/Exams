@@ -3,7 +3,6 @@ using BL.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using Exams.Herpers;
 using BL.Exceptions;
-using Exams.Repositorys;
 using Domin;
 using Microsoft.AspNetCore.Authorization;
 using System.Threading.Tasks;
