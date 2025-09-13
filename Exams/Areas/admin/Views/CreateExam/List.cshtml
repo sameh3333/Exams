@@ -41,6 +41,15 @@
                                             @(exam.IsActive ? "🟢 Active" : "🔴 Inactive")
                                         </button>
                                     </form>
+
+
+                                    <a href="javascript:void(0);"
+                                       class="btn btn-sm btn-danger delete-exam-btn"
+                                       data-id="@exam.Id">
+                                        🗑️ Delete
+                                    </a>
+
+
                                 </td>
 
                             </tr>
@@ -86,6 +95,44 @@
                     showConfirmButton: false
                 });
             }
-        }); 
+        });
+
     </script>
+
+
+            <script>
+        $(document).on("click", ".delete-exam-btn", function (e) {
+            e.preventDefault();
+
+            var examId = $(this).data("id");
+
+            Swal.fire({
+                title: "Are you sure?",
+                text: "This exam and its questions will be permanently deleted!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Yes, delete it!"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteExam", "CreateExam")',
+                        type: 'POST',
+                        data: { id: examId },
+                        success: function () {
+                            Swal.fire("Deleted!", "The exam has been deleted.", "success")
+                                .then(() => {
+                                    location.reload(); // Reload list after delete
+                                });
+                        },
+                        error: function () {
+                            Swal.fire("Error!", "Failed to delete the exam.", "error");
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+
 }

@@ -14,6 +14,7 @@ namespace BL.Contracts
 
         Task<bool> DeleteQuestionWithChoicesAsync(Guid questionId);
         Task<bool> DeleteChoiceAsync(Guid choiceId);
+        Task<bool> DeleteExam(Guid examId);
         Task ToggleActive(Guid examId);
         Task<ExamWithQuestionsViewModel> Edit(Guid examId, ExamWithQuestionsViewModel model);
          Task<ExamWithQuestionsViewModel> GetExamWithQuestionsAsync(Guid examId);

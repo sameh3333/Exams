@@ -167,6 +167,25 @@ namespace Exams.Areas.admin.Controllers
         }
 
 
+        public async Task<IActionResult> DeleteExam(Guid id)
+        {
+            TempData["MessageType"] = null;
+
+            try
+            {
+                var success = await _Exam.DeleteExam(id);
+                TempData["MessageType"] = success ? "3" : "4"; // 3 = DeleteSuccess, 4 = DeleteFailed
+                TempData["MessageText"] = success ? "Exam deleted successfully." : "Failed to delete exam.";
+            }
+            catch (Exception ex)
+            {
+                TempData["MessageType"] = "4";
+                TempData["MessageText"] = "An error occurred while deleting the exam.";
+                throw new DataAccessException(ex, "", _logger);
+            }
+
+            return RedirectToAction("List"); // بيرجع لقائمة الامتحانات
+        }
 
 
         [HttpPost]

@@ -160,8 +160,44 @@ namespace BL.Services
             return await AddExamWithQuestionsAndChoices(examDto, questionDtos);
         }
 
+        public async Task<bool> DeleteExam(Guid examId)
+        {
+            await _uow.BeginTransactionAsync();
+            try
+            {
+                // 1️⃣ جلب الامتحان
+                var exam = await _redo.GetById(examId);
+                if (exam == null)
+                    return false;
 
-        
+                // 2️⃣ جلب الأسئلة المرتبطة
+                var questions = await _questionRepo.GetByExamId(examId);
+
+                foreach (var q in questions)
+                {
+                    // حذف الاختيارات
+                    var choices = await _choiceRepo.GetByQuestionId(q.Id);
+                    foreach (var c in choices)
+                        await _choiceRepo.ChangeStatus(c.Id, Guid.Empty, 0);
+
+                    // حذف السؤال
+                    await _questionRepo.ChangeStatus(q.Id, Guid.Empty, 0);
+                }
+
+                // 3️⃣ حذف الامتحان نفسه
+                await _redo.ChangeStatus(exam.Id, Guid.Empty, 0);
+
+                await _uow.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await _uow.RollbackAsync();
+                throw;
+            }
+        }
+
+
 
         public async Task<ExamWithQuestionsViewModel> Edit(Guid examId, ExamWithQuestionsViewModel model)
         {
