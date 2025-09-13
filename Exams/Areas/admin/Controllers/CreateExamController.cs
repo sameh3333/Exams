@@ -61,8 +61,6 @@ namespace Exams.Areas.admin.Controllers
                 throw new DataAccessException(ex, "", _logger);
             }
 
-
-
             return View(model);
         }
       
@@ -131,7 +129,7 @@ namespace Exams.Areas.admin.Controllers
 
 
 
-        [HttpPost]
+
         public async Task<IActionResult> DeleteQuestion(Guid id, Guid examId)
         {
             TempData["MessageType"] = null;
@@ -149,15 +147,7 @@ namespace Exams.Areas.admin.Controllers
             return RedirectToAction("Edit", "CreateExam", new { id = examId });
         }
 
-        //[HttpPost]
-        //public async Task<IActionResult> DeleteChoice(Guid id, Guid questionId)
-        //{
-        //    var success = await _Exam.DeleteChoiceAsync(id);
-        //    TempData["MessageType"] = success ? MessageType.DeleteSucess : MessageType.DeleteFailed;
-        //    return RedirectToAction("EditQuestion", new { id = questionId });
-        //}
 
-        [HttpPost]
 
         public async Task<IActionResult> DeleteChoice(Guid id, Guid questionId, Guid examId)
         {

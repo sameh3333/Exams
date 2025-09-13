@@ -64,7 +64,15 @@
                                             <label class="form-check-label text-success">Correct</label>
                                         </div>
 
-                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeChoice(this)">🗑️</button>
+                                       @*  <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeChoice(this)">🗑️</button> *@
+                                        <a href="javascript:void(0);"
+                                           class="btn btn-sm btn-outline-danger delete-choice-btn"
+                                           data-id="@choice.c.Id"
+                                           data-question-id="@question.q.Id"
+                                           data-exam-id="@Model.Id">
+                                            🗑️ Remove Choice
+                                        </a>
+
                                     </div>
                                 </div>
                             }
@@ -74,20 +82,14 @@
                             <button type="button" class="btn btn-sm btn-secondary" onclick="addChoice(this)">
                                 ➕ Add Choice
                             </button>
-                         @*    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">
-                                🗑️ Remove Question
-                            </button> *@
-                            <!-- زر حذف السؤال القديم من السيرفر -->
-                            <form asp-action="DeleteQuestion" asp-controller="CreateExam" method="post" style="display:inline;">
-                                <input type="hidden" name="id" value="@question.q.Id" />
-                                <input type="hidden" name="examId" value="@Model.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('هل أنت متأكد من حذف السؤال؟');">
-                                    🗑️ Remove Question
-                                </button>
-                            </form>
+                   
 
-             
+                            <a href="javascript:void(0);"
+                               class="btn btn-sm btn-outline-danger delete-btn"
+                               data-id="@question.q.Id"
+                               data-exam-id="@Model.Id">
+                                🗑️ Remove Question
+                            </a>
 
                         </div>
                     </div>
@@ -104,173 +106,270 @@
 <div id="client-errors" class="alert alert-danger d-none"></div>
 
 @section Scripts {
-<script>
-let questionCounter = @Model.Questions.Count();
+   
 
-// ===== Reindex Questions =====
-function reindexQuestions() {
-    const qItems = document.querySelectorAll('#questions-container .accordion-item');
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+    <script>
+         // 🛑 تأكيد الحذف باستخدام SweetAlert2
+         
+        $(document).on("click", ".delete-btn", function (e) {
+            e.preventDefault();
 
-    qItems.forEach((qEl, qIdx) => {
-        if (!qEl) return;
+            var id = $(this).data("id");
+            var examId = $(this).data("exam-id");
 
-        const btn = qEl.querySelector('.accordion-button');
-        const collapse = qEl.querySelector('.accordion-collapse');
-        const qTextInput = qEl.querySelector('[data-field="question-text"]');
-        const choicesContainer = qEl.querySelector('[data-field="choices-container"]');
+            Swal.fire({
+                title: "Are you sure?",
+                text: "This action cannot be undone!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Yes, delete it!"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteQuestion", "CreateExam")',
+                        type: 'POST',
+                        data: { id: id, examId: examId },
+                        success: function () {
+                            Swal.fire("Deleted!", "The question has been deleted successfully.", "success")
+                                .then(() => {
+                                    location.reload(); // Reload page to reflect changes
+                                });
+                        },
+                        error: function () {
+                            Swal.fire("Error!", "Failed to delete the question.", "error");
+                        }
+                    });
+                }
+            });
+        });
 
-        if (btn && collapse) {
-            btn.setAttribute('data-bs-target', `#collapse-${qIdx}`);
+        // ✅ Show alert based on TempData["MessageType"]
+        var messageType = "@TempData["MessageType"]";
+        if (messageType === "1") {
+            Swal.fire("Success!", "The question has been saved successfully.", "success");
+        } else if (messageType === "2") {
+            Swal.fire("Error!", "Failed to save the question.", "error");
+        } else if (messageType === "3") {
+            Swal.fire("Deleted!", "The question has been deleted.", "success");
+        } else if (messageType === "4") {
+            Swal.fire("Error!", "Failed to delete the question.", "error");
+        }
+    </script>
+    <script>
+        $(document).on("click", ".delete-choice-btn", function (e) {
+            e.preventDefault();
+
+            var id = $(this).data("id");           // Choice Id
+            var questionId = $(this).data("question-id");
+            var examId = $(this).data("exam-id");
+
+            Swal.fire({
+                title: "Are you sure?",
+                text: "This choice will be deleted permanently!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Yes, delete it!"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteChoice", "CreateExam")',
+                        type: 'POST',
+                        data: { id: id, questionId: questionId, examId: examId },
+                        success: function () {
+                            Swal.fire("Deleted!", "The choice has been deleted successfully.", "success")
+                                .then(() => {
+                                    location.reload(); // refresh exam page
+                                });
+                        },
+                        error: function () {
+                            Swal.fire("Error!", "Failed to delete the choice.", "error");
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+
+
+
+    <script>
+            let questionCounter = @Model.Questions.Count();
+
+            // ===== Reindex Questions =====
+            function reindexQuestions() {
+            const qItems = document.querySelectorAll('#questions-container .accordion-item');
+
+            qItems.forEach((qEl, qIdx) => {
+                if (!qEl) return;
+
+            const btn = qEl.querySelector('.accordion-button');
+            const collapse = qEl.querySelector('.accordion-collapse');
+            const qTextInput = qEl.querySelector('[data-field="question-text"]');
+            const choicesContainer = qEl.querySelector('[data-field="choices-container"]');
+
+            if (btn && collapse) {
+                btn.setAttribute('data-bs-target', `#collapse-${qIdx}`);
             collapse.id = `collapse-${qIdx}`;
             const titleIndex = btn.querySelector('.question-title-index');
             if (titleIndex) titleIndex.textContent = (qIdx + 1);
-        }
+                }
 
-        if (qTextInput) qTextInput.setAttribute('name', `Questions[${qIdx}].Text`);
-        if (!choicesContainer) return;
+            if (qTextInput) qTextInput.setAttribute('name', `Questions[${qIdx}].Text`);
+            if (!choicesContainer) return;
 
-        // إزالة hidden السابق
-        choicesContainer.querySelectorAll('input[data-field="is-correct-hidden"]').forEach(h => h.remove());
+                // إزالة hidden السابق
+                choicesContainer.querySelectorAll('input[data-field="is-correct-hidden"]').forEach(h => h.remove());
 
-        const choiceItems = qEl.querySelectorAll('.choice-item');
-        let checkedChoiceIndex = -1;
+            const choiceItems = qEl.querySelectorAll('.choice-item');
+            let checkedChoiceIndex = -1;
 
-        choiceItems.forEach((cEl, cIdx) => {
-            if (!cEl) return;
+                choiceItems.forEach((cEl, cIdx) => {
+                    if (!cEl) return;
             const cText = cEl.querySelector('[data-field="choice-text"]');
             const cRadio = cEl.querySelector('[data-field="choice-correct"]');
             if (cText) cText.setAttribute('name', `Questions[${qIdx}].Choices[${cIdx}].Text`);
             if (cRadio) {
                 cRadio.setAttribute('name', `q${qIdx}_correct`);
-                cRadio.value = cIdx;
-                if (cRadio.checked) checkedChoiceIndex = cIdx;
-            }
-        });
+            cRadio.value = cIdx;
+            if (cRadio.checked) checkedChoiceIndex = cIdx;
+                    }
+                });
 
-        if (checkedChoiceIndex >= 0) {
-            const hidden = document.createElement('input');
+                if (checkedChoiceIndex >= 0) {
+                    const hidden = document.createElement('input');
             hidden.type = 'hidden';
             hidden.dataset.field = 'is-correct-hidden';
             hidden.name = `Questions[${qIdx}].Choices[${checkedChoiceIndex}].IsCorrect`;
             hidden.value = 'true';
             choicesContainer.appendChild(hidden);
+                }
+            });
         }
-    });
-}
 
-// ===== Add Question =====
-function addQuestion() {
-    const qIdx = questionCounter++;
-    const html = `
-        <div class="accordion-item mb-3">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse">
-                    Question <span class="question-title-index">${qIdx + 1}</span>
-                </button>
-            </h2>
-            <div class="accordion-collapse collapse">
-                <div class="accordion-body">
-                    <div class="mb-3">
-                        <input type="text" class="form-control" data-field="question-text" placeholder="Enter question text" required />
-                    </div>
-                    <div data-field="choices-container"></div>
-                    <div class="d-flex justify-content-between mt-2">
-                        <button type="button" class="btn btn-sm btn-outline-success" onclick="addChoice(this)">➕ Add Choice</button>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">🗑️ Remove Question</button>
+            // ===== Add Question =====
+            function addQuestion() {
+            const qIdx = questionCounter++;
+            const html = `
+            <div class="accordion-item mb-3">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse">
+                        Question <span class="question-title-index">${qIdx + 1}</span>
+                    </button>
+                </h2>
+                <div class="accordion-collapse collapse">
+                    <div class="accordion-body">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" data-field="question-text" placeholder="Enter question text" required />
+                        </div>
+                        <div data-field="choices-container"></div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="addChoice(this)">➕ Add Choice</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">🗑️ Remove Question</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>`;
-    document.getElementById("questions-container")?.insertAdjacentHTML("beforeend", html);
+            </div>`;
+            document.getElementById("questions-container")?.insertAdjacentHTML("beforeend", html);
 
-    const lastItem = document.querySelector('#questions-container .accordion-item:last-child');
-    const container = lastItem?.querySelector('[data-field="choices-container"]');
-    if (container) for (let i = 0; i < 2; i++) addChoice(container, true);
+            const lastItem = document.querySelector('#questions-container .accordion-item:last-child');
+            const container = lastItem?.querySelector('[data-field="choices-container"]');
+            if (container) for (let i = 0; i < 2; i++) addChoice(container, true);
 
-    reindexQuestions();
-}
+            reindexQuestions();
+        }
 
-// ===== Add Choice =====
-function addChoice(btnOrContainer, isDefault = false) {
-    const container = isDefault
-        ? btnOrContainer
-        : btnOrContainer.closest('.accordion-item')?.querySelector('[data-field="choices-container"]');
-    if (!container) return;
+            // ===== Add Choice =====
+            function addChoice(btnOrContainer, isDefault = false) {
+            const container = isDefault
+            ? btnOrContainer
+            : btnOrContainer.closest('.accordion-item')?.querySelector('[data-field="choices-container"]');
+            if (!container) return;
 
-    const html = `
-        <div class="choice-item card card-body border-light shadow-sm mb-2">
-            <div class="d-flex align-items-center">
-                <input type="text" class="form-control me-2" data-field="choice-text" placeholder="Choice text" required />
-                <div class="form-check me-2">
-                    <input class="form-check-input" type="radio" data-field="choice-correct" onchange="onCorrectChanged(this)">
-                    <label class="form-check-label text-success">Correct</label>
+            const html = `
+            <div class="choice-item card card-body border-light shadow-sm mb-2">
+                <div class="d-flex align-items-center">
+                    <input type="text" class="form-control me-2" data-field="choice-text" placeholder="Choice text" required />
+                    <div class="form-check me-2">
+                        <input class="form-check-input" type="radio" data-field="choice-correct" onchange="onCorrectChanged(this)">
+                            <label class="form-check-label text-success">Correct</label>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeChoice(this)">🗑️</button>
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeChoice(this)">🗑️</button>
-            </div>
-        </div>`;
-    container.insertAdjacentHTML("beforeend", html);
-    reindexQuestions();
-}
+            </div>`;
+            container.insertAdjacentHTML("beforeend", html);
+            reindexQuestions();
+        }
 
-// ===== Remove Question =====
-function removeQuestion(btn) {
-    btn.closest('.accordion-item')?.remove();
-    reindexQuestions();
-}
+            // ===== Remove Question =====
+            function removeQuestion(btn) {
+                btn.closest('.accordion-item')?.remove();
+            reindexQuestions();
+        }
 
-// ===== Remove Choice =====
-function removeChoice(btn) {
-    btn.closest('.choice-item')?.remove();
-    reindexQuestions();
-}
+            // ===== Remove Choice =====
+            function removeChoice(btn) {
+                btn.closest('.choice-item')?.remove();
+            reindexQuestions();
+        }
 
-// ===== Correct Answer Highlight =====
-function onCorrectChanged(radio) {
-    const qEl = radio.closest('.accordion-item');
-    if (!qEl) return;
-    const qIndex = Array.from(document.querySelectorAll('#questions-container .accordion-item')).indexOf(qEl);
-    const choiceItems = qEl.querySelectorAll('.choice-item');
-    choiceItems.forEach(ci => ci.classList.remove('border-success', 'bg-light'));
-    const checked = qEl.querySelector('[data-field="choice-correct"]:checked');
-    if (checked) checked.closest('.choice-item')?.classList.add('border-success', 'bg-light');
-    reindexQuestions();
-}
+            // ===== Correct Answer Highlight =====
+            function onCorrectChanged(radio) {
+            const qEl = radio.closest('.accordion-item');
+            if (!qEl) return;
+            const qIndex = Array.from(document.querySelectorAll('#questions-container .accordion-item')).indexOf(qEl);
+            const choiceItems = qEl.querySelectorAll('.choice-item');
+            choiceItems.forEach(ci => ci.classList.remove('border-success', 'bg-light'));
+            const checked = qEl.querySelector('[data-field="choice-correct"]:checked');
+            if (checked) checked.closest('.choice-item')?.classList.add('border-success', 'bg-light');
+            reindexQuestions();
+        }
 
-// ===== Validation =====
-function validateBeforeSubmit() {
-    const errors = [];
-    const qItems = document.querySelectorAll('#questions-container .accordion-item');
-    if (qItems.length === 0) errors.push('⚠️ Add at least one question.');
+            // ===== Validation =====
+            function validateBeforeSubmit() {
+            const errors = [];
+            const qItems = document.querySelectorAll('#questions-container .accordion-item');
+            if (qItems.length === 0) errors.push('⚠️ Add at least one question.');
 
-    qItems.forEach((qEl, qIdx) => {
-        const qNumber = qIdx + 1;
-        const qText = qEl.querySelector('[data-field="question-text"]')?.value?.trim();
-        if (!qText) errors.push(`⚠️ Question ${qNumber}: Text is required.`);
-        const choices = qEl.querySelectorAll('.choice-item');
-        if (choices.length < 2) errors.push(`⚠️ Question ${qNumber}: At least 2 choices are required.`);
-        if (!qEl.querySelector('[data-field="choice-correct"]:checked')) errors.push(`⚠️ Question ${qNumber}: Select a correct answer.`);
-    });
+            qItems.forEach((qEl, qIdx) => {
+                const qNumber = qIdx + 1;
+            const qText = qEl.querySelector('[data-field="question-text"]')?.value?.trim();
+            if (!qText) errors.push(`⚠️ Question ${qNumber}: Text is required.`);
+            const choices = qEl.querySelectorAll('.choice-item');
+            if (choices.length < 2) errors.push(`⚠️ Question ${qNumber}: At least 2 choices are required.`);
+            if (!qEl.querySelector('[data-field="choice-correct"]:checked')) errors.push(`⚠️ Question ${qNumber}: Select a correct answer.`);
+            });
 
-    const errBox = document.getElementById('client-errors');
-    if (errors.length > 0) {
-        errBox?.classList.remove('d-none');
-        if (errBox) errBox.innerHTML = errors.map(e => `<div>${e}</div>`).join('');
-        return false;
-    } else {
-        errBox?.classList.add('d-none');
-        if (errBox) errBox.innerHTML = '';
-        return true;
-    }
-}
+            const errBox = document.getElementById('client-errors');
+            if (errors.length > 0) {
+                errBox?.classList.remove('d-none');
+                if (errBox) errBox.innerHTML = errors.map(e => `<div>${e}</div>`).join('');
+            return false;
+            } else {
+                errBox?.classList.add('d-none');
+            if (errBox) errBox.innerHTML = '';
+            return true;
+            }
+        }
 
-document.getElementById('exam-form')?.addEventListener('submit', function(e) {
-    reindexQuestions();
-    if (!validateBeforeSubmit()) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-});
-</script>
+            document.getElementById('exam-form')?.addEventListener('submit', function(e) {
+                reindexQuestions();
+            if (!validateBeforeSubmit()) {
+                e.preventDefault();
+            e.stopPropagation();
+            }
+        });
+    </script>
+   
+
 
 <style>
     .accordion-button .question-title-index { min-width: 1.5rem; display: inline-block; text-align: center; }
