@@ -94,45 +94,7 @@ namespace BL.Services
             await _uow.CommitAsync();
         }
 
-        public async Task<bool> Disable(Guid examId)
-        {
-            var exam = await _uow.Repository<TbExam>().GetById(examId);
-            if (exam == null) return false;
-
-            // عطّل الامتحان
-            exam.IsActive = false;
-            await _uow.Repository<TbExam>().Update(exam);
-
-            // هات الأسئلة
-            var questions = await _questionRepo.GetByExamId(examId);
-
-            foreach (var q in questions)
-            {
-                var questionEntity = await _uow.Repository<TbQuestion>().GetById(q.Id);
-                if (questionEntity != null)
-                {
-                    questionEntity.IsActive = false;
-                    await _uow.Repository<TbQuestion>().Update(questionEntity);
-                }
-
-                // هات الاختيارات
-                var choices = await _choiceRepo.GetByQuestionId(q.Id);
-                foreach (var c in choices)
-                {
-                    var choiceEntity = await _uow.Repository<TbChoice>().GetById(c.Id);
-                    if (choiceEntity != null)
-                    {
-                        choiceEntity.IsActive = false;
-                        await _uow.Repository<TbChoice>().Update(choiceEntity);
-                    }
-                }
-            }
-
-            await _uow.CommitAsync();
-            return true;
-        }
-
-
+       
 
         public async Task<Guid> Create(ExamWithQuestionsViewModel model)
         {

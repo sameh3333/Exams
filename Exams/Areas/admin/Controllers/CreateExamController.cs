@@ -103,28 +103,7 @@ namespace Exams.Areas.admin.Controllers
             }
         }
 
-        // 📌 POST: admin/CreateExam/Delete/{id}
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Disable(Guid id)
-        {
-            try
-            {
-                TempData["MessageType"] = null;
-
-                await _Exam.Disable(id); // استدعاء ميثود الـ Service لتعطيل الامتحان
-                TempData["MessageType"] = MessageType.SaveSucess;
-
-            }
-            catch (Exception ex)
-            {
-
-                TempData["MessageType"] = MessageType.SaveFailed;
-                throw new DataAccessException(ex, "", _logger);
-            }
-
-            return RedirectToAction("List");
-        }
+     
 
 
 
